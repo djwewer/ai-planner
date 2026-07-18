@@ -14,6 +14,16 @@ Google Calendar sync and Telegram notifications.
 This is the MVP. A second phase (separate UI/UX-focused effort) will follow
 once this core loop is working end to end.
 
+## Product Language
+
+The entire product is in **Ukrainian** — every screen, label, button, and
+backend-generated error message. This is a single-language product, not an
+internationalized one: there is no language switcher and no translation
+layer, Ukrainian text is simply what's written everywhere, backend included.
+AI triage preserves whatever language the user captured in (typically
+Ukrainian) rather than translating task titles. When voice capture is built,
+its transcription must be configured for Ukrainian.
+
 ## Scope
 
 **In scope for MVP:**
