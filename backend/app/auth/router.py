@@ -58,10 +58,16 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
         userinfo = await oauth.google.parse_id_token(request, token)
     google_id = userinfo["sub"]
     email = userinfo["email"]
+    email_verified = userinfo.get("email_verified", False)
 
     user = db.query(User).filter(User.google_id == google_id).first()
     if user is None:
-        user = db.query(User).filter(User.email == email).first()
+        email_match = db.query(User).filter(User.email == email).first()
+        if email_match is not None and not email_verified:
+            return RedirectResponse(
+                url=f"{settings.frontend_url}/login?error=email_not_verified"
+            )
+        user = email_match
     if user is None:
         user = User(email=email, google_id=google_id)
         db.add(user)
