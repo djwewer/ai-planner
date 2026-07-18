@@ -1,16 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/lib/auth-context";
 
 export default function HomePage() {
-  const [status, setStatus] = useState("checking...");
+  const { user, loading } = useAuth();
+  const router = useRouter();
 
   useEffect(() => {
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/health`)
-      .then((res) => res.json())
-      .then((data) => setStatus(data.status))
-      .catch(() => setStatus("unreachable"));
-  }, []);
+    if (!loading) {
+      router.push(user ? "/tasks" : "/login");
+    }
+  }, [loading, user, router]);
 
-  return <p>Backend status: {status}</p>;
+  return <p>Loading…</p>;
 }
