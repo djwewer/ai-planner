@@ -25,7 +25,7 @@ function LoginPageInner() {
       setToken(result.access_token);
       router.push("/tasks");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Login failed");
+      setError(err instanceof ApiError ? err.message : "Не вдалося увійти");
     }
   }
 
@@ -33,11 +33,12 @@ function LoginPageInner() {
 
   return (
     <main>
-      <h1>Log in</h1>
+      <h1>Увійти</h1>
       {oauthError === "email_not_verified" && (
         <p>
-          Your Google account&apos;s email isn&apos;t verified, so it can&apos;t be linked
-          automatically. Please log in with your email and password instead.
+          Електронна пошта вашого облікового запису Google не підтверджена, тому
+          автоматичне прив&apos;язування неможливе. Увійдіть за допомогою email та
+          пароля.
         </p>
       )}
       <form onSubmit={handleSubmit}>
@@ -50,17 +51,17 @@ function LoginPageInner() {
         />
         <input
           type="password"
-          placeholder="Password"
+          placeholder="Пароль"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
         {error && <p>{error}</p>}
-        <button type="submit">Log in</button>
+        <button type="submit">Увійти</button>
       </form>
-      <a href={`${apiUrl}/auth/google/login`}>Sign in with Google</a>
+      <a href={`${apiUrl}/auth/google/login`}>Увійти через Google</a>
       <p>
-        No account? <a href="/signup">Sign up</a>
+        Немає акаунта? <a href="/signup">Зареєструватися</a>
       </p>
     </main>
   );
@@ -68,7 +69,7 @@ function LoginPageInner() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<p>Loading…</p>}>
+    <Suspense fallback={<p>Завантаження…</p>}>
       <LoginPageInner />
     </Suspense>
   );

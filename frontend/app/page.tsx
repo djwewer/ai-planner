@@ -14,5 +14,5 @@ export default function HomePage() {
     }
   }, [loading, user, router]);
 
-  return <p>Loading…</p>;
+  return <p>Завантаження…</p>;
 }

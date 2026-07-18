@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { Nav } from "@/components/nav";
 
 type Task = {
   id: number;
@@ -14,7 +15,7 @@ type Task = {
 };
 
 export default function TasksPage() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [title, setTitle] = useState("");
@@ -47,7 +48,7 @@ export default function TasksPage() {
       setTitle("");
       setDeadline("");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to create task");
+      setError(err instanceof ApiError ? err.message : "Не вдалося створити задачу");
     }
   }
 
@@ -59,7 +60,7 @@ export default function TasksPage() {
       });
       setTasks(tasks.map((t) => (t.id === task.id ? updated : t)));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to update task");
+      setError(err instanceof ApiError ? err.message : "Не вдалося оновити задачу");
     }
   }
 
@@ -69,32 +70,32 @@ export default function TasksPage() {
       await api.delete(`/tasks/${task.id}`);
       setTasks(tasks.filter((t) => t.id !== task.id));
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Failed to delete task");
+      setError(err instanceof ApiError ? err.message : "Не вдалося видалити задачу");
     }
   }
 
-  if (loading || !user) return <p>Loading…</p>;
+  if (loading || !user) return <p>Завантаження…</p>;
 
   return (
     <main>
-      <h1>Tasks</h1>
-      <button onClick={logout}>Log out</button>
+      <Nav />
+      <h1>Задачі</h1>
       {error && <p>{error}</p>}
       <form onSubmit={handleCreate}>
         <input
-          placeholder="Task title"
+          placeholder="Назва задачі"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           required
         />
         <select value={priority} onChange={(e) => setPriority(Number(e.target.value))}>
-          <option value={1}>P1 - Urgent</option>
-          <option value={2}>P2 - High</option>
-          <option value={3}>P3 - Medium</option>
-          <option value={4}>P4 - Low</option>
+          <option value={1}>P1 - Терміново</option>
+          <option value={2}>P2 - Високий</option>
+          <option value={3}>P3 - Середній</option>
+          <option value={4}>P4 - Низький</option>
         </select>
         <input type="date" value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-        <button type="submit">Add task</button>
+        <button type="submit">Додати задачу</button>
       </form>
       <ul>
         {tasks.map((task) => (
@@ -106,8 +107,8 @@ export default function TasksPage() {
             />
             <span>{task.title}</span>
             <span> P{task.priority}</span>
-            {task.deadline && <span> due {task.deadline}</span>}
-            <button onClick={() => handleDelete(task)}>Delete</button>
+            {task.deadline && <span> термін: {task.deadline}</span>}
+            <button onClick={() => handleDelete(task)}>Видалити</button>
           </li>
         ))}
       </ul>

@@ -23,7 +23,7 @@ export default function SignupPage() {
       setToken(result.access_token);
       router.push("/tasks");
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Signup failed");
+      setError(err instanceof ApiError ? err.message : "Не вдалося зареєструватися");
     }
   }
 
@@ -31,7 +31,7 @@ export default function SignupPage() {
 
   return (
     <main>
-      <h1>Sign up</h1>
+      <h1>Зареєструватися</h1>
       <form onSubmit={handleSubmit}>
         <input
           type="email"
@@ -42,18 +42,18 @@ export default function SignupPage() {
         />
         <input
           type="password"
-          placeholder="Password (min 8 characters)"
+          placeholder="Пароль (мінімум 8 символів)"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
           minLength={8}
         />
         {error && <p>{error}</p>}
-        <button type="submit">Sign up</button>
+        <button type="submit">Зареєструватися</button>
       </form>
-      <a href={`${apiUrl}/auth/google/login`}>Sign up with Google</a>
+      <a href={`${apiUrl}/auth/google/login`}>Зареєструватися через Google</a>
       <p>
-        Already have an account? <a href="/login">Log in</a>
+        Вже є акаунт? <a href="/login">Увійти</a>
       </p>
     </main>
   );

@@ -20,12 +20,12 @@ function AuthCallbackInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
-  return <p>Signing you in…</p>;
+  return <p>Виконується вхід…</p>;
 }
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense fallback={<p>Loading…</p>}>
+    <Suspense fallback={<p>Завантаження…</p>}>
       <AuthCallbackInner />
     </Suspense>
   );
