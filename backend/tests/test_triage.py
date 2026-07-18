@@ -1,6 +1,7 @@
 import datetime
 from unittest.mock import MagicMock
 
+import pydantic
 import pytest
 
 from app.ai import triage
@@ -58,3 +59,15 @@ def test_extract_tasks_raises_on_missing_tool_use(monkeypatch):
 
     with pytest.raises(ValueError):
         triage.extract_tasks("test", datetime.date(2026, 7, 19))
+
+
+def test_extract_tasks_raises_on_out_of_range_priority(monkeypatch):
+    mock_create = MagicMock(
+        return_value=_mock_tool_response(
+            [{"title": "Buy milk", "priority": 7, "deadline": None}]
+        )
+    )
+    monkeypatch.setattr(triage.client.messages, "create", mock_create)
+
+    with pytest.raises(pydantic.ValidationError):
+        triage.extract_tasks("buy milk", datetime.date(2026, 7, 19))

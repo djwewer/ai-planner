@@ -2,7 +2,7 @@ import datetime
 from typing import Optional
 
 import anthropic
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.config import settings
 
@@ -46,7 +46,7 @@ TRIAGE_TOOL = {
 
 class ExtractedTask(BaseModel):
     title: str
-    priority: int
+    priority: int = Field(ge=1, le=4)
     deadline: Optional[datetime.date]
 
 
