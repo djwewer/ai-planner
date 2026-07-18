@@ -16,6 +16,7 @@ def test_signup_duplicate_email_rejected(client):
         "/auth/signup", json={"email": "dup@example.com", "password": "password123"}
     )
     assert response.status_code == 400
+    assert response.json()["detail"] == "Ця електронна пошта вже зареєстрована"
 
 
 def test_login_with_correct_password(client):
@@ -37,11 +38,13 @@ def test_login_with_wrong_password_rejected(client):
         "/auth/login", json={"email": "wrong@example.com", "password": "wrongpass"}
     )
     assert response.status_code == 401
+    assert response.json()["detail"] == "Невірний email або пароль"
 
 
 def test_me_requires_valid_token(client):
     response = client.get("/auth/me")
     assert response.status_code == 401
+    assert response.json()["detail"] == "Необхідна автентифікація"
 
     signup = client.post(
         "/auth/signup", json={"email": "me@example.com", "password": "password123"}
@@ -57,6 +60,7 @@ def test_me_with_malformed_token_rejected(client):
         "/auth/me", headers={"Authorization": "Bearer not-a-real-jwt"}
     )
     assert response.status_code == 401
+    assert response.json()["detail"] == "Недійсний токен"
 
 
 def test_me_with_token_for_deleted_user_rejected(client, db_session):
@@ -73,3 +77,4 @@ def test_me_with_token_for_deleted_user_rejected(client, db_session):
 
     response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 401
+    assert response.json()["detail"] == "Користувача не знайдено"

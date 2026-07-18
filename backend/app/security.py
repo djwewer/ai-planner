@@ -37,7 +37,7 @@ def decode_access_token(token: str) -> int:
         )
     except jwt.PyJWTError:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Недійсний токен"
         )
     return int(payload["sub"])
 
@@ -47,12 +47,12 @@ def get_current_user(
 ) -> User:
     if token is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Необхідна автентифікація"
         )
     user_id = decode_access_token(token)
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Користувача не знайдено"
         )
     return user

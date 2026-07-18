@@ -23,5 +23,6 @@ def test_create_and_decode_access_token():
 def test_decode_invalid_token_raises():
     from fastapi import HTTPException
 
-    with pytest.raises(HTTPException):
+    with pytest.raises(HTTPException) as exc_info:
         decode_access_token("not-a-real-token")
+    assert exc_info.value.detail == "Недійсний токен"
