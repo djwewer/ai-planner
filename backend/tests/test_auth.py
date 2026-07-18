@@ -50,3 +50,26 @@ def test_me_requires_valid_token(client):
     response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
     assert response.status_code == 200
     assert response.json()["email"] == "me@example.com"
+
+
+def test_me_with_malformed_token_rejected(client):
+    response = client.get(
+        "/auth/me", headers={"Authorization": "Bearer not-a-real-jwt"}
+    )
+    assert response.status_code == 401
+
+
+def test_me_with_token_for_deleted_user_rejected(client, db_session):
+    from app.models import User
+
+    signup = client.post(
+        "/auth/signup", json={"email": "deleted@example.com", "password": "password123"}
+    )
+    token = signup.json()["access_token"]
+
+    user = db_session.query(User).filter(User.email == "deleted@example.com").first()
+    db_session.delete(user)
+    db_session.commit()
+
+    response = client.get("/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401

@@ -1,7 +1,24 @@
 from unittest.mock import AsyncMock
 
+from fastapi.responses import RedirectResponse
+
 from app.auth import google_oauth
 from app.models import User
+
+
+def test_google_login_redirects_to_google(client, monkeypatch):
+    monkeypatch.setattr(
+        google_oauth.oauth.google,
+        "authorize_redirect",
+        AsyncMock(
+            return_value=RedirectResponse(url="https://accounts.google.com/mock-auth-url")
+        ),
+    )
+
+    response = client.get("/auth/google/login", follow_redirects=False)
+
+    assert response.status_code in (302, 307)
+    assert response.headers["location"] == "https://accounts.google.com/mock-auth-url"
 
 
 def test_google_callback_creates_new_user(client, monkeypatch):
