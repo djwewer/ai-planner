@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
 type Task = {
@@ -20,6 +20,7 @@ export default function TasksPage() {
   const [title, setTitle] = useState("");
   const [priority, setPriority] = useState(3);
   const [deadline, setDeadline] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -35,26 +36,41 @@ export default function TasksPage() {
 
   async function handleCreate(e: FormEvent) {
     e.preventDefault();
-    const task = await api.post<Task>("/tasks", {
-      title,
-      priority,
-      deadline: deadline || null,
-    });
-    setTasks([task, ...tasks]);
-    setTitle("");
-    setDeadline("");
+    setError(null);
+    try {
+      const task = await api.post<Task>("/tasks", {
+        title,
+        priority,
+        deadline: deadline || null,
+      });
+      setTasks([task, ...tasks]);
+      setTitle("");
+      setDeadline("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to create task");
+    }
   }
 
   async function toggleDone(task: Task) {
-    const updated = await api.patch<Task>(`/tasks/${task.id}`, {
-      status: task.status === "done" ? "confirmed" : "done",
-    });
-    setTasks(tasks.map((t) => (t.id === task.id ? updated : t)));
+    setError(null);
+    try {
+      const updated = await api.patch<Task>(`/tasks/${task.id}`, {
+        status: task.status === "done" ? "confirmed" : "done",
+      });
+      setTasks(tasks.map((t) => (t.id === task.id ? updated : t)));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to update task");
+    }
   }
 
   async function handleDelete(task: Task) {
-    await api.delete(`/tasks/${task.id}`);
-    setTasks(tasks.filter((t) => t.id !== task.id));
+    setError(null);
+    try {
+      await api.delete(`/tasks/${task.id}`);
+      setTasks(tasks.filter((t) => t.id !== task.id));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Failed to delete task");
+    }
   }
 
   if (loading || !user) return <p>Loading…</p>;
@@ -63,6 +79,7 @@ export default function TasksPage() {
     <main>
       <h1>Tasks</h1>
       <button onClick={logout}>Log out</button>
+      {error && <p>{error}</p>}
       <form onSubmit={handleCreate}>
         <input
           placeholder="Task title"
