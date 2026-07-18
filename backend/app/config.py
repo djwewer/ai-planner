@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     google_client_secret: str = ""
     google_redirect_uri: str = ""
     frontend_url: str = "http://localhost:3000"
+    anthropic_api_key: str = ""
 
     class Config:
         env_file = ".env"
