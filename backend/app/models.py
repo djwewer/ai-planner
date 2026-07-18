@@ -18,11 +18,22 @@ class User(Base):
     tasks = relationship("Task", back_populates="user", cascade="all, delete-orphan")
 
 
+class Capture(Base):
+    __tablename__ = "captures"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    raw_text = Column(String, nullable=False)
+    status = Column(String, nullable=False, default="processing")
+    created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
+
+
 class Task(Base):
     __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    capture_id = Column(Integer, ForeignKey("captures.id"), nullable=True, index=True)
     title = Column(String, nullable=False)
     priority = Column(Integer, nullable=False, default=3)
     deadline = Column(Date, nullable=True)
