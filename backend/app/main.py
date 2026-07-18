@@ -4,6 +4,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.auth.router import router as auth_router
 from app.config import settings
+from app.tasks.router import router as tasks_router
 
 app = FastAPI(title="AI Planner API")
 
@@ -17,6 +18,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(tasks_router)
 
 
 @app.get("/health")
