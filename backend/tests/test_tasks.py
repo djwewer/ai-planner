@@ -65,6 +65,7 @@ def test_cannot_access_another_users_task(client):
         f"/tasks/{task_id}", json={"status": "done"}, headers=_auth_headers(token_b)
     )
     assert response.status_code == 404
+    assert response.json()["detail"] == "Задачу не знайдено"
 
 
 def test_list_tasks_excludes_drafts_and_rejected_by_default(client, db_session):
@@ -126,3 +127,33 @@ def test_today_returns_overdue_and_today_sorted_by_priority(client, db_session):
     assert response.status_code == 200
     titles = [t["title"] for t in response.json()]
     assert titles == ["Today urgent", "Overdue low"]
+
+
+def test_today_sorts_by_deadline_within_same_priority(client, db_session):
+    token = _signup_and_get_token(client, email="tiebreakowner@example.com")
+    user = db_session.query(User).filter(User.email == "tiebreakowner@example.com").first()
+
+    today = datetime.date.today()
+    yesterday = today - datetime.timedelta(days=1)
+
+    same_priority_today = Task(
+        user_id=user.id,
+        title="Same priority today",
+        status="confirmed",
+        priority=2,
+        deadline=today,
+    )
+    same_priority_yesterday = Task(
+        user_id=user.id,
+        title="Same priority yesterday",
+        status="confirmed",
+        priority=2,
+        deadline=yesterday,
+    )
+    db_session.add_all([same_priority_today, same_priority_yesterday])
+    db_session.commit()
+
+    response = client.get("/tasks/today", headers=_auth_headers(token))
+    assert response.status_code == 200
+    titles = [t["title"] for t in response.json()]
+    assert titles == ["Same priority yesterday", "Same priority today"]

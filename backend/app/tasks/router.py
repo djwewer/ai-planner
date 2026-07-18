@@ -60,7 +60,7 @@ def list_today_tasks(
 def _get_owned_task(task_id: int, current_user: User, db: Session) -> Task:
     task = db.query(Task).filter(Task.id == task_id).first()
     if task is None or task.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Задачу не знайдено")
     return task
 
 
