@@ -1,3 +1,8 @@
+import datetime
+
+from app.models import Task, User
+
+
 def _signup_and_get_token(client, email="taskuser@example.com"):
     response = client.post("/auth/signup", json={"email": email, "password": "password123"})
     return response.json()["access_token"]
@@ -60,3 +65,64 @@ def test_cannot_access_another_users_task(client):
         f"/tasks/{task_id}", json={"status": "done"}, headers=_auth_headers(token_b)
     )
     assert response.status_code == 404
+
+
+def test_list_tasks_excludes_drafts_and_rejected_by_default(client, db_session):
+    token = _signup_and_get_token(client, email="draftowner@example.com")
+    user = db_session.query(User).filter(User.email == "draftowner@example.com").first()
+
+    draft = Task(user_id=user.id, title="Draft task", status="draft")
+    rejected = Task(user_id=user.id, title="Rejected task", status="rejected")
+    db_session.add_all([draft, rejected])
+    db_session.commit()
+
+    client.post("/tasks", json={"title": "Confirmed task"}, headers=_auth_headers(token))
+
+    listing = client.get("/tasks", headers=_auth_headers(token))
+    titles = [t["title"] for t in listing.json()]
+    assert titles == ["Confirmed task"]
+
+
+def test_list_tasks_with_status_filter_returns_only_that_status(client, db_session):
+    token = _signup_and_get_token(client, email="filterowner@example.com")
+    user = db_session.query(User).filter(User.email == "filterowner@example.com").first()
+
+    draft = Task(user_id=user.id, title="Draft task", status="draft")
+    db_session.add(draft)
+    db_session.commit()
+
+    client.post("/tasks", json={"title": "Confirmed task"}, headers=_auth_headers(token))
+
+    listing = client.get("/tasks?status=draft", headers=_auth_headers(token))
+    titles = [t["title"] for t in listing.json()]
+    assert titles == ["Draft task"]
+
+
+def test_today_returns_overdue_and_today_sorted_by_priority(client, db_session):
+    token = _signup_and_get_token(client, email="todayowner@example.com")
+    user = db_session.query(User).filter(User.email == "todayowner@example.com").first()
+
+    today = datetime.date.today()
+    yesterday = today - datetime.timedelta(days=1)
+    tomorrow = today + datetime.timedelta(days=1)
+
+    overdue_low = Task(
+        user_id=user.id, title="Overdue low", status="confirmed", priority=4, deadline=yesterday
+    )
+    today_urgent = Task(
+        user_id=user.id, title="Today urgent", status="confirmed", priority=1, deadline=today
+    )
+    future_task = Task(
+        user_id=user.id, title="Future task", status="confirmed", priority=1, deadline=tomorrow
+    )
+    no_deadline_task = Task(user_id=user.id, title="No deadline", status="confirmed")
+    draft_task = Task(
+        user_id=user.id, title="Draft due today", status="draft", priority=1, deadline=today
+    )
+    db_session.add_all([overdue_low, today_urgent, future_task, no_deadline_task, draft_task])
+    db_session.commit()
+
+    response = client.get("/tasks/today", headers=_auth_headers(token))
+    assert response.status_code == 200
+    titles = [t["title"] for t in response.json()]
+    assert titles == ["Today urgent", "Overdue low"]

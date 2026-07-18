@@ -1,6 +1,7 @@
-from typing import List
+import datetime
+from typing import List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -25,11 +26,33 @@ def create_task(
 
 
 @router.get("", response_model=List[TaskOut])
-def list_tasks(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+def list_tasks(
+    status_filter: Optional[str] = Query(default=None, alias="status"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    query = db.query(Task).filter(Task.user_id == current_user.id)
+    if status_filter is not None:
+        query = query.filter(Task.status == status_filter)
+    else:
+        query = query.filter(Task.status.in_(["confirmed", "done"]))
+    return query.order_by(Task.created_at.desc()).all()
+
+
+@router.get("/today", response_model=List[TaskOut])
+def list_today_tasks(
+    current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
+):
+    today = datetime.date.today()
     return (
         db.query(Task)
-        .filter(Task.user_id == current_user.id)
-        .order_by(Task.created_at.desc())
+        .filter(
+            Task.user_id == current_user.id,
+            Task.status.in_(["confirmed", "done"]),
+            Task.deadline.isnot(None),
+            Task.deadline <= today,
+        )
+        .order_by(Task.priority.asc(), Task.deadline.asc())
         .all()
     )
 
