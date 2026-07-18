@@ -1,16 +1,18 @@
 "use client";
 
-import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { FormEvent, Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
-export default function LoginPage() {
+function LoginPageInner() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const { setToken } = useAuth();
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const oauthError = searchParams.get("error");
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -32,6 +34,12 @@ export default function LoginPage() {
   return (
     <main>
       <h1>Log in</h1>
+      {oauthError === "email_not_verified" && (
+        <p>
+          Your Google account&apos;s email isn&apos;t verified, so it can&apos;t be linked
+          automatically. Please log in with your email and password instead.
+        </p>
+      )}
       <form onSubmit={handleSubmit}>
         <input
           type="email"
@@ -55,5 +63,13 @@ export default function LoginPage() {
         No account? <a href="/signup">Sign up</a>
       </p>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<p>Loading…</p>}>
+      <LoginPageInner />
+    </Suspense>
   );
 }

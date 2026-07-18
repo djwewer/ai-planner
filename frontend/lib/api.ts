@@ -22,7 +22,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 
   if (!response.ok) {
     const body = await response.json().catch(() => ({}));
-    throw new ApiError(response.status, body.detail ?? "Request failed");
+    const detail = body.detail;
+    let message: string;
+    if (typeof detail === "string") {
+      message = detail;
+    } else if (Array.isArray(detail)) {
+      message = detail
+        .map((item) => item?.msg)
+        .filter((msg): msg is string => Boolean(msg))
+        .join("; ") || "Request failed";
+    } else {
+      message = "Request failed";
+    }
+    throw new ApiError(response.status, message);
   }
 
   if (response.status === 204) {
