@@ -30,7 +30,7 @@ services:
       - "8000:8000"
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.ai-planner-api.rule=Host(`srv1440057.hstgr.cloud`)"
+      - "traefik.http.routers.ai-planner-api.rule=Host(`bcknd.srv1440057.hstgr.cloud`)"
       - "traefik.http.routers.ai-planner-api.entrypoints=websecure"
       - "traefik.http.routers.ai-planner-api.tls.certresolver=letsencrypt"
       - "traefik.http.services.ai-planner-api.loadbalancer.server.port=8000"
