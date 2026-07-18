@@ -21,6 +21,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env
+    environment:
+      - DATABASE_URL=postgresql://planner:planner@postgres:5432/planner
     depends_on:
       postgres:
         condition: service_healthy
