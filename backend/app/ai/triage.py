@@ -54,19 +54,21 @@ class ExtractedTask(BaseModel):
     deadline: Optional[datetime.date]
 
 
-def _upcoming_dates_reference(today: datetime.date) -> str:
-    """Return today plus the next 7 days as 'YYYY-MM-DD (Weekday)' entries.
+def _upcoming_weekdays_reference(today: datetime.date) -> str:
+    """Return the next 7 days (NOT including today) as 'Weekday=YYYY-MM-DD' entries.
 
     Precomputing this in Python avoids relying on the model to correctly
-    perform day-of-week arithmetic itself.
+    perform day-of-week arithmetic itself. Today is deliberately excluded so
+    a weekday name (e.g. "Friday") never collides with today's own weekday —
+    "today"/"сьогодні" is handled separately via the explicit today's-date
+    sentence in the prompt, never via this table.
     """
-    days = [today + datetime.timedelta(days=offset) for offset in range(8)]
-    entries = [f"{day.isoformat()} ({day.strftime('%A')})" for day in days]
-    return f"today={entries[0]}, " + ", ".join(entries[1:])
+    days = [today + datetime.timedelta(days=offset) for offset in range(1, 8)]
+    return ", ".join(f"{day.strftime('%A')}={day.isoformat()}" for day in days)
 
 
 def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
-    dates_reference = _upcoming_dates_reference(today)
+    weekdays_reference = _upcoming_weekdays_reference(today)
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
@@ -76,14 +78,20 @@ def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
                     "You extract actionable tasks from a user's free-form capture text. "
                     f"Today's date is {today.isoformat()}. Resolve relative dates "
                     '(e.g. "tomorrow", "next Friday") to absolute ISO 8601 dates using '
-                    "today's date as the reference point. For your reference, here are "
-                    "the next 7 days with their weekday names — use this table to "
-                    'resolve weekday names (e.g. "Friday") to exact dates, rather than '
-                    f"calculating weekdays yourself: {dates_reference}. Keep each task's "
-                    "title in the same language as the input text — do not translate it. "
-                    "Assign a priority from 1 (urgent) to 4 (low) based on urgency cues in "
-                    "the text. If no deadline is mentioned or inferrable, use null. If the "
-                    "text contains no actionable tasks, return an empty list."
+                    "today's date as the reference point. Do not guess or infer a "
+                    "deadline that isn't stated or clearly implied by the text. "
+                    "For weekday names, use this table of the next 7 days rather than "
+                    f"calculating dates yourself: {weekdays_reference}. If the user "
+                    'names a weekday (e.g. "Friday" or "next Friday"), always use the '
+                    "date from this table for that weekday — never use today's date "
+                    "for a weekday name, even if today happens to fall on that "
+                    "weekday, and never substitute a different weekday's date. Only "
+                    'the words "today"/"сьогодні" map to today\'s own date. Keep each '
+                    "task's title in the same language as the input text — do not "
+                    "translate it. Assign a priority from 1 (urgent) to 4 (low) based "
+                    "on urgency cues in the text. If no deadline is mentioned or "
+                    "inferrable, use null. If the text contains no actionable tasks, "
+                    "return an empty list."
                 ),
             },
             {"role": "user", "content": raw_text},
