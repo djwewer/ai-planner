@@ -79,3 +79,15 @@ def test_extract_tasks_raises_on_out_of_range_priority(monkeypatch):
 
     with pytest.raises(pydantic.ValidationError):
         triage.extract_tasks("buy milk", datetime.date(2026, 7, 19))
+
+
+def test_extract_tasks_prompt_includes_weekday_reference_table(monkeypatch):
+    mock_create = MagicMock(return_value=_mock_tool_response([]))
+    monkeypatch.setattr(triage.client.chat.completions, "create", mock_create)
+
+    triage.extract_tasks("finish report by Friday", datetime.date(2026, 7, 19))
+
+    call_kwargs = mock_create.call_args.kwargs
+    system_content = call_kwargs["messages"][0]["content"]
+    assert "2026-07-24" in system_content
+    assert "2026-07-24 (Friday)" in system_content

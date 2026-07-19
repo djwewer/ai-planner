@@ -54,7 +54,19 @@ class ExtractedTask(BaseModel):
     deadline: Optional[datetime.date]
 
 
+def _upcoming_dates_reference(today: datetime.date) -> str:
+    """Return today plus the next 7 days as 'YYYY-MM-DD (Weekday)' entries.
+
+    Precomputing this in Python avoids relying on the model to correctly
+    perform day-of-week arithmetic itself.
+    """
+    days = [today + datetime.timedelta(days=offset) for offset in range(8)]
+    entries = [f"{day.isoformat()} ({day.strftime('%A')})" for day in days]
+    return f"today={entries[0]}, " + ", ".join(entries[1:])
+
+
 def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
+    dates_reference = _upcoming_dates_reference(today)
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
@@ -64,10 +76,13 @@ def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
                     "You extract actionable tasks from a user's free-form capture text. "
                     f"Today's date is {today.isoformat()}. Resolve relative dates "
                     '(e.g. "tomorrow", "next Friday") to absolute ISO 8601 dates using '
-                    "today's date as the reference point. Keep each task's title in the "
-                    "same language as the input text — do not translate it. Assign a "
-                    "priority from 1 (urgent) to 4 (low) based on urgency cues in the "
-                    "text. If no deadline is mentioned or inferrable, use null. If the "
+                    "today's date as the reference point. For your reference, here are "
+                    "the next 7 days with their weekday names — use this table to "
+                    'resolve weekday names (e.g. "Friday") to exact dates, rather than '
+                    f"calculating weekdays yourself: {dates_reference}. Keep each task's "
+                    "title in the same language as the input text — do not translate it. "
+                    "Assign a priority from 1 (urgent) to 4 (low) based on urgency cues in "
+                    "the text. If no deadline is mentioned or inferrable, use null. If the "
                     "text contains no actionable tasks, return an empty list."
                 ),
             },
