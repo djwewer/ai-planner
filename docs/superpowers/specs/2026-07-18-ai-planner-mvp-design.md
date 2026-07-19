@@ -65,10 +65,14 @@ and routing via Docker labels — no separate Nginx needed). Internal modules:
 - **Capture** — accepts text directly, or an audio file upload for voice
 - **Transcription** — wraps self-hosted open-source Whisper (faster-whisper),
   running on the VPS
-- **AI Triage** — sends captured text to the Claude API with a
+- **AI Triage** — sends captured text to the OpenAI API (`gpt-4o-mini`) with a
   structured-output prompt, splitting it into draft task(s): title, priority
   (P1–P4), deadline, and a suggested scheduled time slot (checked against
-  Google Calendar free/busy before suggesting a slot)
+  Google Calendar free/busy before suggesting a slot). (Amended 2026-07-19:
+  originally specified as Claude/Anthropic; switched to OpenAI because the
+  project owner has OpenAI billing set up, not Anthropic's. The AI provider
+  is isolated behind `app/ai/triage.py`'s `extract_tasks()` interface, so
+  this was a contained internal swap, not a redesign.)
 - **Tasks** — CRUD + state machine, computes Today and Calendar queries
 - **Google Calendar** — stores per-user OAuth refresh tokens, reads events for
   free/busy, writes/updates/deletes events for confirmed tasks

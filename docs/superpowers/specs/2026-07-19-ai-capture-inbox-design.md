@@ -2,6 +2,14 @@
 
 _Date: 2026-07-19_
 
+> **Amendment (2026-07-19, post-implementation):** the AI provider was
+> switched from Claude (Anthropic) to OpenAI's `gpt-4o-mini`, because the
+> project owner has OpenAI billing set up and not Anthropic's. Every mention
+> of "Claude"/"Anthropic" below reflects the original design decision;
+> `app/ai/triage.py`'s `extract_tasks()`/`ExtractedTask` interface is
+> unchanged, so this was a contained internal swap of that one module, not a
+> redesign of the capture/inbox flow.
+
 ## Overview
 
 Builds the AI-assisted core loop on top of Plan 1's Foundation (auth + manual
