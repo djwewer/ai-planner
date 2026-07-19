@@ -90,4 +90,4 @@ def test_extract_tasks_prompt_includes_weekday_reference_table(monkeypatch):
     call_kwargs = mock_create.call_args.kwargs
     system_content = call_kwargs["messages"][0]["content"]
     assert "2026-07-24" in system_content
-    assert "2026-07-24 (Friday)" in system_content
+    assert "Friday=2026-07-24" in system_content

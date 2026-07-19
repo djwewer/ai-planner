@@ -1,4 +1,5 @@
 import datetime
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
@@ -9,6 +10,8 @@ from app.database import get_db
 from app.models import Capture, Task, User
 from app.schemas import TaskOut
 from app.security import get_current_user
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/captures", tags=["captures"])
 
@@ -31,6 +34,7 @@ def create_capture(
     try:
         extracted = extract_tasks(payload.raw_text, datetime.date.today())
     except Exception:
+        logger.exception("triage failed for capture_id=%s", capture.id)
         capture.status = "failed"
         db.commit()
         raise HTTPException(

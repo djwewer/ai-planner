@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
@@ -8,6 +10,8 @@ from app.auth.router import router as auth_router
 from app.captures.router import router as captures_router
 from app.config import settings
 from app.tasks.router import router as tasks_router
+
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
 app = FastAPI(title="AI Planner API")
 

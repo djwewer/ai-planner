@@ -1,11 +1,14 @@
 import datetime
 import json
+import logging
 from typing import Optional
 
 import openai
 from pydantic import BaseModel, Field
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 client = openai.OpenAI(api_key=settings.openai_api_key)
 
@@ -69,6 +72,12 @@ def _upcoming_weekdays_reference(today: datetime.date) -> str:
 
 def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
     weekdays_reference = _upcoming_weekdays_reference(today)
+    logger.info(
+        "triage request: today=%s weekdays_reference=%s raw_text=%r",
+        today.isoformat(),
+        weekdays_reference,
+        raw_text,
+    )
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
@@ -104,7 +113,9 @@ def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
     if tool_calls:
         for tool_call in tool_calls:
             if tool_call.function.name == "extract_tasks":
+                logger.info("triage raw response: %s", tool_call.function.arguments)
                 raw_tasks = json.loads(tool_call.function.arguments).get("tasks", [])
                 return [ExtractedTask(**task) for task in raw_tasks]
 
+    logger.warning("triage response had no matching tool call: %r", response)
     raise ValueError("OpenAI response did not include the expected tool call")
