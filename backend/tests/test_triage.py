@@ -1,4 +1,5 @@
 import datetime
+import json
 from unittest.mock import MagicMock
 
 import pydantic
@@ -8,12 +9,15 @@ from app.ai import triage
 
 
 def _mock_tool_response(tasks_payload):
-    block = MagicMock()
-    block.type = "tool_use"
-    block.name = "extract_tasks"
-    block.input = {"tasks": tasks_payload}
+    tool_call = MagicMock()
+    tool_call.function.name = "extract_tasks"
+    tool_call.function.arguments = json.dumps({"tasks": tasks_payload})
+    message = MagicMock()
+    message.tool_calls = [tool_call]
+    choice = MagicMock()
+    choice.message = message
     response = MagicMock()
-    response.content = [block]
+    response.choices = [choice]
     return response
 
 
@@ -26,7 +30,7 @@ def test_extract_tasks_returns_parsed_tasks(monkeypatch):
             ]
         )
     )
-    monkeypatch.setattr(triage.client.messages, "create", mock_create)
+    monkeypatch.setattr(triage.client.chat.completions, "create", mock_create)
 
     result = triage.extract_tasks("buy milk and call john", datetime.date(2026, 7, 19))
 
@@ -38,13 +42,13 @@ def test_extract_tasks_returns_parsed_tasks(monkeypatch):
     assert result[1].deadline is None
 
     call_kwargs = mock_create.call_args.kwargs
-    assert "2026-07-19" in call_kwargs["system"]
+    assert "2026-07-19" in call_kwargs["messages"][0]["content"]
     assert call_kwargs["model"] == triage.MODEL
 
 
 def test_extract_tasks_empty_result(monkeypatch):
     mock_create = MagicMock(return_value=_mock_tool_response([]))
-    monkeypatch.setattr(triage.client.messages, "create", mock_create)
+    monkeypatch.setattr(triage.client.chat.completions, "create", mock_create)
 
     result = triage.extract_tasks("just thinking out loud", datetime.date(2026, 7, 19))
 
@@ -52,10 +56,14 @@ def test_extract_tasks_empty_result(monkeypatch):
 
 
 def test_extract_tasks_raises_on_missing_tool_use(monkeypatch):
+    message = MagicMock()
+    message.tool_calls = None
+    choice = MagicMock()
+    choice.message = message
     response = MagicMock()
-    response.content = []
+    response.choices = [choice]
     mock_create = MagicMock(return_value=response)
-    monkeypatch.setattr(triage.client.messages, "create", mock_create)
+    monkeypatch.setattr(triage.client.chat.completions, "create", mock_create)
 
     with pytest.raises(ValueError):
         triage.extract_tasks("test", datetime.date(2026, 7, 19))
@@ -67,7 +75,7 @@ def test_extract_tasks_raises_on_out_of_range_priority(monkeypatch):
             [{"title": "Buy milk", "priority": 7, "deadline": None}]
         )
     )
-    monkeypatch.setattr(triage.client.messages, "create", mock_create)
+    monkeypatch.setattr(triage.client.chat.completions, "create", mock_create)
 
     with pytest.raises(pydantic.ValidationError):
         triage.extract_tasks("buy milk", datetime.date(2026, 7, 19))
