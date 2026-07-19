@@ -17,6 +17,7 @@ class UserLogin(BaseModel):
 class UserOut(BaseModel):
     id: int
     email: EmailStr
+    google_calendar_connected: bool = False
 
     class Config:
         from_attributes = True
@@ -31,6 +32,7 @@ class TaskCreate(BaseModel):
     title: str = Field(min_length=1)
     priority: int = Field(default=3, ge=1, le=4)
     deadline: Optional[datetime.date] = None
+    scheduled_at: Optional[datetime.datetime] = None
 
 
 class TaskUpdate(BaseModel):
@@ -38,6 +40,7 @@ class TaskUpdate(BaseModel):
     priority: Optional[int] = Field(default=None, ge=1, le=4)
     deadline: Optional[datetime.date] = None
     status: Optional[str] = None
+    scheduled_at: Optional[datetime.datetime] = None
 
 
 class TaskOut(BaseModel):
@@ -45,6 +48,8 @@ class TaskOut(BaseModel):
     title: str
     priority: int
     deadline: Optional[datetime.date]
+    scheduled_at: Optional[datetime.datetime]
+    google_event_id: Optional[str]
     status: str
     created_at: datetime.datetime
     updated_at: datetime.datetime

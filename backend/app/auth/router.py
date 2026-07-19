@@ -43,7 +43,11 @@ def login(payload: UserLogin, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def me(current_user: User = Depends(get_current_user)):
-    return current_user
+    return UserOut(
+        id=current_user.id,
+        email=current_user.email,
+        google_calendar_connected=current_user.google_calendar_refresh_token is not None,
+    )
 
 
 @router.get("/google/login")

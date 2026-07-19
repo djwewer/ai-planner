@@ -13,6 +13,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     password_hash = Column(String, nullable=True)
     google_id = Column(String, unique=True, nullable=True, index=True)
+    google_calendar_refresh_token = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
 
     tasks = relationship("Task", back_populates="user", cascade="all, delete-orphan")
@@ -37,6 +38,8 @@ class Task(Base):
     title = Column(String, nullable=False)
     priority = Column(Integer, nullable=False, default=3)
     deadline = Column(Date, nullable=True)
+    scheduled_at = Column(DateTime, nullable=True)
+    google_event_id = Column(String, nullable=True)
     status = Column(String, nullable=False, default="confirmed")
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
     updated_at = Column(
