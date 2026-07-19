@@ -1,6 +1,7 @@
 import logging
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, status
+from starlette.concurrency import run_in_threadpool
 
 from app.ai.whisper import transcribe_audio
 from app.models import User
@@ -18,7 +19,9 @@ async def transcribe(
 ):
     audio_bytes = await file.read()
     try:
-        text = transcribe_audio(audio_bytes, file.filename or "recording.webm")
+        text = await run_in_threadpool(
+            transcribe_audio, audio_bytes, file.filename or "recording.webm"
+        )
     except Exception:
         logger.exception("transcription failed for user_id=%s", current_user.id)
         raise HTTPException(
