@@ -98,9 +98,12 @@ def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
                     'the words "today"/"сьогодні" map to today\'s own date. Keep each '
                     "task's title in the same language as the input text — do not "
                     "translate it. Assign a priority from 1 (urgent) to 4 (low) based "
-                    "on urgency cues in the text. If no deadline is mentioned or "
-                    "inferrable, use null. If the text contains no actionable tasks, "
-                    "return an empty list."
+                    "on urgency cues in the text (e.g. \"urgent\"/\"терміново\" is "
+                    "priority 1). If no deadline is mentioned or inferrable: for "
+                    f"priority 1 (urgent) tasks, use today's date ({today.isoformat()}) "
+                    "as the deadline, since an urgent task with no stated deadline "
+                    "still needs to happen today; for priority 2-4 tasks, use null. "
+                    "If the text contains no actionable tasks, return an empty list."
                 ),
             },
             {"role": "user", "content": raw_text},
