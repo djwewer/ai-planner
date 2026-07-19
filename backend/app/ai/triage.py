@@ -58,16 +58,23 @@ class ExtractedTask(BaseModel):
 
 
 def _upcoming_weekdays_reference(today: datetime.date) -> str:
-    """Return the next 7 days (NOT including today) as 'Weekday=YYYY-MM-DD' entries.
+    """Return the next two occurrences of each weekday, labeled (this)/(next).
 
     Precomputing this in Python avoids relying on the model to correctly
-    perform day-of-week arithmetic itself. Today is deliberately excluded so
-    a weekday name (e.g. "Friday") never collides with today's own weekday —
-    "today"/"сьогодні" is handled separately via the explicit today's-date
-    sentence in the prompt, never via this table.
+    perform day-of-week arithmetic itself. Each weekday name appears twice:
+    "(this)" for the occurrence within the next 7 days, "(next)" for the
+    occurrence exactly one week after that — so the model resolves "Friday"
+    vs. "next Friday" by matching a label, not by counting or reasoning
+    about weeks itself. Today is deliberately excluded so a weekday name
+    never collides with today's own weekday — "today"/"сьогодні" is handled
+    separately via the explicit today's-date sentence in the prompt, never
+    via this table.
     """
-    days = [today + datetime.timedelta(days=offset) for offset in range(1, 8)]
-    return ", ".join(f"{day.strftime('%A')}={day.isoformat()}" for day in days)
+    this_week = [today + datetime.timedelta(days=offset) for offset in range(1, 8)]
+    next_week = [today + datetime.timedelta(days=offset) for offset in range(8, 15)]
+    entries = [f"{day.strftime('%A')}(this)={day.isoformat()}" for day in this_week]
+    entries += [f"{day.strftime('%A')}(next)={day.isoformat()}" for day in next_week]
+    return ", ".join(entries)
 
 
 def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
@@ -89,13 +96,21 @@ def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
                     '(e.g. "tomorrow", "next Friday") to absolute ISO 8601 dates using '
                     "today's date as the reference point. Do not guess or infer a "
                     "deadline that isn't stated or clearly implied by the text. "
-                    "For weekday names, use this table of the next 7 days rather than "
-                    f"calculating dates yourself: {weekdays_reference}. If the user "
-                    'names a weekday (e.g. "Friday" or "next Friday"), always use the '
-                    "date from this table for that weekday — never use today's date "
-                    "for a weekday name, even if today happens to fall on that "
-                    "weekday, and never substitute a different weekday's date. Only "
-                    'the words "today"/"сьогодні" map to today\'s own date. Keep each '
+                    "For weekday names, use this table rather than calculating dates "
+                    "yourself — each weekday appears twice, labeled (this) for the "
+                    "nearer date and (next) for exactly one week later: "
+                    f"{weekdays_reference}. Follow this rule STRICTLY: if the user "
+                    'names a weekday WITHOUT the word "next"/"наступного"/"наступної"/'
+                    '"наступний" (e.g. "Friday"/"п\'ятниця"), you MUST use the (this) '
+                    "date for that weekday. If the user explicitly says "
+                    '"next"/"наступного"/"наступної"/"наступний" before the weekday '
+                    'name (e.g. "next Friday"/"наступної п\'ятниці"), you MUST use the '
+                    "(next) date instead — do not use the (this) date in that case, "
+                    "even if it seems like the more natural nearest date. Never use "
+                    "today's date for a weekday name, even if today happens to fall "
+                    "on that weekday, and never substitute a different weekday's date "
+                    'than the one named. Only the words "today"/"сьогодні" map to '
+                    "today's own date. Keep each "
                     "task's title in the same language as the input text — do not "
                     "translate it. Assign a priority from 1 (urgent) to 4 (low) based "
                     "on urgency cues in the text (e.g. \"urgent\"/\"терміново\" is "

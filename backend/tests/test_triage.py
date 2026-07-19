@@ -89,5 +89,20 @@ def test_extract_tasks_prompt_includes_weekday_reference_table(monkeypatch):
 
     call_kwargs = mock_create.call_args.kwargs
     system_content = call_kwargs["messages"][0]["content"]
-    assert "2026-07-24" in system_content
-    assert "Friday=2026-07-24" in system_content
+    assert "Friday(this)=2026-07-24" in system_content
+    assert "Friday(next)=2026-07-31" in system_content
+
+
+def test_extract_tasks_prompt_next_wednesday_is_one_week_later(monkeypatch):
+    # Regression test for a reported bug: today=Monday 2026-07-20, "next
+    # Wednesday" must resolve to 2026-07-29 (one week out), not 2026-07-22
+    # (this week's Wednesday).
+    mock_create = MagicMock(return_value=_mock_tool_response([]))
+    monkeypatch.setattr(triage.client.chat.completions, "create", mock_create)
+
+    triage.extract_tasks("prepare presentation by next Wednesday", datetime.date(2026, 7, 20))
+
+    call_kwargs = mock_create.call_args.kwargs
+    system_content = call_kwargs["messages"][0]["content"]
+    assert "Wednesday(this)=2026-07-22" in system_content
+    assert "Wednesday(next)=2026-07-29" in system_content
