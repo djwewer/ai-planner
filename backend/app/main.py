@@ -10,6 +10,7 @@ from app.auth.router import router as auth_router
 from app.captures.router import router as captures_router
 from app.config import settings
 from app.tasks.router import router as tasks_router
+from app.transcription.router import router as transcription_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
@@ -27,6 +28,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(tasks_router)
 app.include_router(captures_router)
+app.include_router(transcription_router)
 
 
 @app.exception_handler(RequestValidationError)
