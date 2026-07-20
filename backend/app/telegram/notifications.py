@@ -1,3 +1,4 @@
+from app.config import settings
 from app.models import Task, User
 from app.telegram import client as telegram_client
 
@@ -9,17 +10,30 @@ STATUS_LABELS = {
 }
 
 
+def _format_deadline_line(task: Task) -> str:
+    if task.scheduled_at is not None:
+        return (
+            f"📅Дедлайн: {task.scheduled_at.strftime('%H:%M')}, "
+            f"{task.scheduled_at.strftime('%d.%m.%Y')}"
+        )
+    if task.deadline is not None:
+        return f"📅Дедлайн: {task.deadline.strftime('%d.%m.%Y')}"
+    return "📝Задача без дедлайну"
+
+
 def render_batch_message(tasks: list[Task]) -> tuple[str, dict | None]:
     shown = tasks[:MAX_INLINE_TASKS]
-    lines = [f"🆕 {len(tasks)} нових задач готові до перегляду"]
+    blocks = ["Привіт! Ось нові задачі для підтвердження:"]
     keyboard_rows = []
+    any_resolved = False
 
     for task in shown:
         label = STATUS_LABELS.get(task.status)
         if label is not None:
-            lines.append(f"— {task.title}: {label}")
+            any_resolved = True
+            blocks.append(f"— {task.title}: {label}")
         else:
-            lines.append(f"— {task.title}")
+            blocks.append(f"— {task.title}\n{_format_deadline_line(task)}")
             keyboard_rows.append(
                 [
                     {"text": "✅", "callback_data": f"approve:{task.id}"},
@@ -29,9 +43,20 @@ def render_batch_message(tasks: list[Task]) -> tuple[str, dict | None]:
 
     remaining = len(tasks) - len(shown)
     if remaining > 0:
-        lines.append(f"...і ще {remaining} — переглянути в Inbox")
+        blocks.append(f"...і ще {remaining} — переглянути в Inbox")
 
-    text = "\n".join(lines)
+    text = "\n\n".join(blocks)
+
+    if any_resolved:
+        keyboard_rows.append(
+            [
+                {
+                    "text": "Переглянути задачі в застосунку",
+                    "url": f"{settings.frontend_url}/tasks",
+                }
+            ]
+        )
+
     reply_markup = {"inline_keyboard": keyboard_rows} if keyboard_rows else None
     return text, reply_markup
 
