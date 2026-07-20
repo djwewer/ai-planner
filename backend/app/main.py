@@ -11,6 +11,7 @@ from app.captures.router import router as captures_router
 from app.config import settings
 from app.google_calendar.router import router as google_calendar_router
 from app.tasks.router import router as tasks_router
+from app.telegram.router import router as telegram_router
 from app.transcription.router import router as transcription_router
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
@@ -37,6 +38,7 @@ app.include_router(tasks_router)
 app.include_router(captures_router)
 app.include_router(transcription_router)
 app.include_router(google_calendar_router)
+app.include_router(telegram_router)
 
 
 @app.exception_handler(RequestValidationError)
