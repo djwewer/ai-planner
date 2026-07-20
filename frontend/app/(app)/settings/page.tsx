@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { CalendarDays, Check, Send } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
+import { useAuth } from "@/lib/auth-context";
 
 type Me = {
   id: number;
@@ -14,6 +15,7 @@ type Me = {
 
 function SettingsPageInner() {
   const searchParams = useSearchParams();
+  const { logout } = useAuth();
   const [me, setMe] = useState<Me | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [connectingCalendar, setConnectingCalendar] = useState(false);
@@ -119,6 +121,9 @@ function SettingsPageInner() {
                   {connectingTelegram ? "Підключення…" : "Підключити Telegram бота"}
                 </button>
               )}
+            </div>
+            <div style={{ margin: "0 20px" }}>
+              <button className="secondary-btn" onClick={logout}>Вийти з акаунта</button>
             </div>
           </>
         )}
