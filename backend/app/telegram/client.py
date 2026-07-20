@@ -1,3 +1,5 @@
+import json
+
 import httpx
 
 from app.config import settings
@@ -41,3 +43,19 @@ def answer_callback_query(callback_query_id: str, text: str | None = None) -> No
         response.raise_for_status()
     except httpx.HTTPStatusError as e:
         raise RuntimeError(f"Telegram API error {e.response.status_code}") from None
+
+
+def get_updates(
+    offset: int | None, timeout: int = 30, allowed_updates: list[str] | None = None
+) -> list[dict]:
+    params: dict = {"timeout": timeout}
+    if offset is not None:
+        params["offset"] = offset
+    if allowed_updates is not None:
+        params["allowed_updates"] = json.dumps(allowed_updates)
+    response = httpx.get(_api_url("getUpdates"), params=params, timeout=timeout + 10)
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise RuntimeError(f"Telegram API error {e.response.status_code}") from None
+    return response.json()["result"]

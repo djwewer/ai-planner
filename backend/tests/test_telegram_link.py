@@ -1,9 +1,7 @@
 import datetime
 from unittest.mock import MagicMock
 
-from app.telegram import router as telegram_router
-
-WEBHOOK_HEADERS = {"X-Telegram-Bot-Api-Secret-Token": "test-webhook-secret"}
+from app.telegram import handlers as telegram_handlers
 
 
 def _signup(client, email="telegramuser@example.com"):
@@ -15,7 +13,7 @@ def test_start_with_expired_code_does_not_link(client, monkeypatch, db_session):
     from app.models import TelegramLinkCode, User
 
     mock_send = MagicMock()
-    monkeypatch.setattr(telegram_router.telegram_client, "send_message", mock_send)
+    monkeypatch.setattr(telegram_handlers.telegram_client, "send_message", mock_send)
 
     _signup(client)
     user = db_session.query(User).filter(User.email == "telegramuser@example.com").first()
@@ -29,13 +27,10 @@ def test_start_with_expired_code_does_not_link(client, monkeypatch, db_session):
     )
     db_session.commit()
 
-    response = client.post(
-        "/telegram/webhook",
-        json={"message": {"chat": {"id": 999}, "text": "/start expired-code"}},
-        headers=WEBHOOK_HEADERS,
+    telegram_handlers.handle_update(
+        {"message": {"chat": {"id": 999}, "text": "/start expired-code"}}, db_session
     )
 
-    assert response.status_code == 200
     db_session.refresh(user)
     assert user.telegram_chat_id is None
-    mock_send.assert_called_once_with(999, telegram_router.CODE_INVALID_MESSAGE)
+    mock_send.assert_called_once_with(999, telegram_handlers.CODE_INVALID_MESSAGE)

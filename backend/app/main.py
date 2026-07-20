@@ -14,6 +14,7 @@ from app.captures.router import router as captures_router
 from app.config import settings
 from app.google_calendar.router import router as google_calendar_router
 from app.tasks.router import router as tasks_router
+from app.telegram import polling as telegram_polling
 from app.telegram.router import router as telegram_router
 from app.telegram.scheduler import send_daily_digest_and_overdue_nudges, send_scheduled_reminders
 from app.transcription.router import router as transcription_router
@@ -34,7 +35,9 @@ async def lifespan(app: FastAPI):
         id="telegram_daily_digest",
     )
     scheduler.start()
+    telegram_polling.start()
     yield
+    telegram_polling.stop()
     scheduler.shutdown()
 
 

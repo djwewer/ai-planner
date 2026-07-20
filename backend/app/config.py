@@ -14,7 +14,6 @@ class Settings(BaseSettings):
     anthropic_api_key: str = ""
     openai_api_key: str = ""
     telegram_bot_token: str = ""
-    telegram_webhook_secret: str = ""
     telegram_bot_username: str = ""
 
     class Config:
