@@ -2,6 +2,8 @@ import os
 
 os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 os.environ.setdefault("JWT_SECRET", "test-secret")
+os.environ.setdefault("TELEGRAM_WEBHOOK_SECRET", "test-webhook-secret")
+os.environ.setdefault("TELEGRAM_BOT_USERNAME", "test_bot")
 
 import pytest
 from fastapi.testclient import TestClient
