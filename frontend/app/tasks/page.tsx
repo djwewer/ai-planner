@@ -5,12 +5,14 @@ import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 import { Nav } from "@/components/nav";
+import { ScheduleButton } from "@/components/schedule-button";
 
 type Task = {
   id: number;
   title: string;
   priority: number;
   deadline: string | null;
+  scheduled_at: string | null;
   status: string;
 };
 
@@ -74,6 +76,10 @@ export default function TasksPage() {
     }
   }
 
+  function handleScheduled(taskId: number, scheduledAt: string) {
+    setTasks(tasks.map((t) => (t.id === taskId ? { ...t, scheduled_at: scheduledAt } : t)));
+  }
+
   if (loading || !user) return <p>Завантаження…</p>;
 
   return (
@@ -105,9 +111,24 @@ export default function TasksPage() {
               checked={task.status === "done"}
               onChange={() => toggleDone(task)}
             />
+            {task.scheduled_at && (
+              <span>
+                {new Date(task.scheduled_at).toLocaleTimeString("uk-UA", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+                {" — "}
+              </span>
+            )}
             <span>{task.title}</span>
             <span> P{task.priority}</span>
             {task.deadline && <span> термін: {task.deadline}</span>}
+            {!task.scheduled_at && (
+              <ScheduleButton
+                taskId={task.id}
+                onScheduled={(scheduledAt) => handleScheduled(task.id, scheduledAt)}
+              />
+            )}
             <button onClick={() => handleDelete(task)}>Видалити</button>
           </li>
         ))}

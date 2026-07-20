@@ -11,6 +11,7 @@ type Task = {
   title: string;
   priority: number;
   deadline: string | null;
+  scheduled_at: string | null;
   status: string;
 };
 
@@ -32,7 +33,7 @@ export default function InboxPage() {
     }
   }, [user]);
 
-  function updateDraftField(id: number, field: keyof Task, value: string | number) {
+  function updateDraftField(id: number, field: keyof Task, value: string | number | null) {
     setDrafts(drafts.map((d) => (d.id === id ? { ...d, [field]: value } : d)));
   }
 
@@ -43,6 +44,7 @@ export default function InboxPage() {
         title: task.title,
         priority: task.priority,
         deadline: task.deadline || null,
+        scheduled_at: task.scheduled_at || null,
         status: "confirmed",
       });
       setDrafts(drafts.filter((d) => d.id !== task.id));
@@ -59,6 +61,11 @@ export default function InboxPage() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Не вдалося відхилити задачу");
     }
+  }
+
+  function toDatetimeLocalValue(iso: string | null): string {
+    if (!iso) return "";
+    return iso.slice(0, 16);
   }
 
   if (loading || !user) return <p>Завантаження…</p>;
@@ -89,6 +96,13 @@ export default function InboxPage() {
               type="date"
               value={task.deadline ?? ""}
               onChange={(e) => updateDraftField(task.id, "deadline", e.target.value)}
+            />
+            <input
+              type="datetime-local"
+              value={toDatetimeLocalValue(task.scheduled_at)}
+              onChange={(e) =>
+                updateDraftField(task.id, "scheduled_at", e.target.value || null)
+              }
             />
             <button onClick={() => handleApprove(task)}>Підтвердити</button>
             <button onClick={() => handleReject(task)}>Відхилити</button>
