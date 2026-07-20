@@ -24,6 +24,7 @@ def _sync_task_calendar(current_user: User, task: Task, db: Session) -> None:
                 google_calendar_client.delete_event(current_user, task.google_event_id)
             except Exception:
                 logger.exception("failed to delete calendar event for task_id=%s", task.id)
+                return
             task.google_event_id = None
             db.commit()
         return

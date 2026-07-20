@@ -14,6 +14,7 @@ type Task = {
   deadline: string | null;
   scheduled_at: string | null;
   status: string;
+  google_event_id: string | null;
 };
 
 export default function TasksPage() {
@@ -123,6 +124,11 @@ export default function TasksPage() {
             <span>{task.title}</span>
             <span> P{task.priority}</span>
             {task.deadline && <span> термін: {task.deadline}</span>}
+            {task.scheduled_at &&
+              !task.google_event_id &&
+              (task.status === "confirmed" || task.status === "done") && (
+                <span> не синхронізовано з календарем</span>
+              )}
             {!task.scheduled_at && (
               <ScheduleButton
                 taskId={task.id}

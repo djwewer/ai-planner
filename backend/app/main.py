@@ -17,7 +17,13 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname
 
 app = FastAPI(title="AI Planner API")
 
-app.add_middleware(SessionMiddleware, secret_key=settings.jwt_secret)
+_frontend_is_https = settings.frontend_url.startswith("https://")
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.jwt_secret,
+    same_site="none" if _frontend_is_https else "lax",
+    https_only=_frontend_is_https,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.frontend_url],
