@@ -1,14 +1,17 @@
 "use client";
 
 import { FormEvent, Suspense, useState } from "react";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import logo from "@/public/taska-logo.png";
 
 function LoginPageInner() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const { setToken } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -17,6 +20,7 @@ function LoginPageInner() {
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError(null);
+    setSubmitting(true);
     try {
       const result = await api.post<{ access_token: string }>("/auth/login", {
         email,
@@ -26,23 +30,30 @@ function LoginPageInner() {
       router.push("/tasks");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Не вдалося увійти");
+      setSubmitting(false);
     }
   }
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL;
 
   return (
-    <main>
-      <h1>Увійти</h1>
+    <div className="auth-screen">
+      <div className="auth-brand">
+        <Image src={logo} alt="Taska" width={56} height={56} priority />
+        <h1>Taska</h1>
+        <p>Увійдіть, щоб побачити свій план</p>
+      </div>
+
       {oauthError === "email_not_verified" && (
-        <p>
+        <p className="auth-notice">
           Електронна пошта вашого облікового запису Google не підтверджена, тому
-          автоматичне прив&apos;язування неможливе. Увійдіть за допомогою email та
-          пароля.
+          автоматичне прив&apos;язування неможливе. Увійдіть за допомогою email та пароля.
         </p>
       )}
-      <form onSubmit={handleSubmit}>
+
+      <form className="auth-form" onSubmit={handleSubmit}>
         <input
+          className="auth-input"
           type="email"
           placeholder="Email"
           value={email}
@@ -50,20 +61,29 @@ function LoginPageInner() {
           required
         />
         <input
+          className="auth-input"
           type="password"
           placeholder="Пароль"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
         />
-        {error && <p>{error}</p>}
-        <button type="submit">Увійти</button>
+        {error && <p className="auth-error">{error}</p>}
+        <button className="primary-btn" type="submit" disabled={submitting}>
+          {submitting ? "Вхід…" : "Увійти"}
+        </button>
       </form>
-      <a href={`${apiUrl}/auth/google/login`}>Увійти через Google</a>
-      <p>
+
+      <div className="auth-divider">або</div>
+
+      <a className="secondary-btn" style={{ display: "block", textAlign: "center" }} href={`${apiUrl}/auth/google/login`}>
+        Продовжити з Google
+      </a>
+
+      <p className="auth-footer">
         Немає акаунта? <a href="/signup">Зареєструватися</a>
       </p>
-    </main>
+    </div>
   );
 }
 
