@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { Task } from "@/lib/types";
 import { useEditTask } from "@/lib/edit-task-context";
 import { useSnackbar } from "@/lib/snackbar-context";
+import { pluralizeTasks } from "@/components/capture-flow/SuccessView";
 
 function formatTaskMeta(task: Task): { text: string; neutral: boolean } {
   if (task.scheduled_at) {
@@ -68,7 +69,7 @@ export default function InboxPage() {
         <div>
           <h2>Вхідні</h2>
           <div className="date-label">
-            {drafts !== null && count > 0 ? `${count} ${count === 1 ? "задача" : "задачі"} очікують підтвердження` : ""}
+            {drafts !== null && count > 0 ? `${count} ${pluralizeTasks(count, ["задача", "задачі", "задач"])} очікують підтвердження` : ""}
           </div>
         </div>
       </div>

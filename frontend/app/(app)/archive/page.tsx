@@ -2,41 +2,52 @@
 
 import { useEffect, useState } from "react";
 import { Archive as ArchiveIcon, Check } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { Task } from "@/lib/types";
+import { toDateParam } from "@/lib/date";
 
 function groupByDay(tasks: Task[]): { label: string; tasks: Task[] }[] {
-  const today = new Date().toDateString();
-  const yesterday = new Date(Date.now() - 86400000).toDateString();
+  const today = toDateParam(new Date());
+  const yesterday = toDateParam(new Date(Date.now() - 86400000));
   const groups = new Map<string, Task[]>();
   for (const task of tasks) {
-    const key = new Date(task.updated_at).toDateString();
+    const key = toDateParam(new Date(task.updated_at));
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(task);
   }
   return Array.from(groups.entries())
     .sort((a, b) => (a[0] < b[0] ? 1 : -1))
-    .map(([key, items]) => ({
-      label:
-        key === today
-          ? "Сьогодні"
-          : key === yesterday
-          ? "Учора"
-          : new Date(key).toLocaleDateString("uk-UA", { day: "numeric", month: "long" }),
-      tasks: items,
-    }));
+    .map(([key, items]) => {
+      const [year, month, day] = key.split("-").map(Number);
+      const dateObj = new Date(year, month - 1, day);
+      return {
+        label:
+          key === today
+            ? "Сьогодні"
+            : key === yesterday
+            ? "Учора"
+            : dateObj.toLocaleDateString("uk-UA", { day: "numeric", month: "long" }),
+        tasks: items,
+      };
+    });
 }
 
 export default function ArchivePage() {
   const [tasks, setTasks] = useState<Task[] | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     api.get<Task[]>("/tasks?status=done").then(setTasks);
   }, []);
 
   async function handleUndo(task: Task) {
-    const updated = await api.patch<Task>(`/tasks/${task.id}`, { status: "confirmed" });
-    setTasks((current) => (current ?? []).filter((t) => t.id !== updated.id));
+    setError(null);
+    try {
+      const updated = await api.patch<Task>(`/tasks/${task.id}`, { status: "confirmed" });
+      setTasks((current) => (current ?? []).filter((t) => t.id !== updated.id));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Не вдалося повернути задачу");
+    }
   }
 
   const groups = tasks ? groupByDay(tasks) : [];
@@ -49,6 +60,7 @@ export default function ArchivePage() {
           <div className="date-label">Виконані задачі</div>
         </div>
       </div>
+      {error && <p style={{ padding: "0 20px", color: "var(--error)", fontSize: 13 }}>{error}</p>}
       <div className="scroll">
         {tasks === null && (
           <div style={{ padding: "0 20px" }}>

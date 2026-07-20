@@ -24,12 +24,14 @@ function SettingsPageInner() {
   }, []);
 
   useEffect(() => {
-    if (searchParams.get("error") === "calendar_connect_failed") {
-      setError("Не вдалося підключити Google Calendar, спробуйте ще раз");
-    }
-    if (searchParams.get("connected") === "1") {
-      setMe((current) => (current ? { ...current, google_calendar_connected: true } : current));
-    }
+    (() => {
+      if (searchParams.get("error") === "calendar_connect_failed") {
+        setError("Не вдалося підключити Google Calendar, спробуйте ще раз");
+      }
+      if (searchParams.get("connected") === "1") {
+        setMe((current) => (current ? { ...current, google_calendar_connected: true } : current));
+      }
+    })();
   }, [searchParams]);
 
   useEffect(() => {

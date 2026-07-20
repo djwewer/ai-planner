@@ -26,7 +26,10 @@ export default function AppLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!user) return;
-    api.get<Task[]>("/tasks?status=draft").then((tasks) => setInboxCount(tasks.length));
+    api
+      .get<Task[]>("/tasks?status=draft")
+      .then((tasks) => setInboxCount(tasks.length))
+      .catch(() => {});
   }, [user, pathname]);
 
   if (loading || !user) return <p>Завантаження…</p>;

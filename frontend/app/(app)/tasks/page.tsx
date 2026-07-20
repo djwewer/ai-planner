@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CalendarCheck2, Check } from "lucide-react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { Task, CalendarEvent } from "@/lib/types";
 import { toDateParam, isSameDay, capitalize, startOfWeek, startOfMonth, endOfMonth } from "@/lib/date";
 import { DateStrip } from "@/components/date-strip/DateStrip";
@@ -28,29 +28,43 @@ export default function TasksPage() {
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const [selectedMonthDate, setSelectedMonthDate] = useState(new Date());
   const [monthTasks, setMonthTasks] = useState<Task[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (tab !== "day") return;
-    setDayLoading(true);
-    const dateParam = toDateParam(selectedDate);
-    const taskRequest = isSameDay(selectedDate, new Date())
-      ? api.get<Task[]>("/tasks/today")
-      : api.get<Task[]>(`/tasks/calendar?start=${dateParam}&end=${dateParam}`);
-    const dayStart = new Date(selectedDate);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(selectedDate);
-    dayEnd.setHours(23, 59, 59, 999);
-    Promise.all([
-      taskRequest,
-      api
-        .get<{ events: CalendarEvent[] }>(`/calendar/events?start=${dayStart.toISOString()}&end=${dayEnd.toISOString()}`)
-        .then((d) => d.events)
-        .catch(() => [] as CalendarEvent[]),
-    ]).then(([fetchedTasks, fetchedEvents]) => {
-      setDayTasks(fetchedTasks);
-      setDayEvents(fetchedEvents);
-      setDayLoading(false);
-    });
+    let cancelled = false;
+    function run() {
+      setDayLoading(true);
+      const dateParam = toDateParam(selectedDate);
+      const taskRequest = isSameDay(selectedDate, new Date())
+        ? api.get<Task[]>("/tasks/today")
+        : api.get<Task[]>(`/tasks/calendar?start=${dateParam}&end=${dateParam}`);
+      const dayStart = new Date(selectedDate);
+      dayStart.setHours(0, 0, 0, 0);
+      const dayEnd = new Date(selectedDate);
+      dayEnd.setHours(23, 59, 59, 999);
+      Promise.all([
+        taskRequest,
+        api
+          .get<{ events: CalendarEvent[] }>(`/calendar/events?start=${dayStart.toISOString()}&end=${dayEnd.toISOString()}`)
+          .then((d) => d.events)
+          .catch(() => [] as CalendarEvent[]),
+      ])
+        .then(([fetchedTasks, fetchedEvents]) => {
+          if (cancelled) return;
+          setDayTasks(fetchedTasks);
+          setDayEvents(fetchedEvents);
+          setDayLoading(false);
+        })
+        .catch(() => {
+          if (cancelled) return;
+          setDayLoading(false);
+        });
+    }
+    run();
+    return () => {
+      cancelled = true;
+    };
   }, [tab, selectedDate]);
 
   useEffect(() => {
@@ -69,27 +83,37 @@ export default function TasksPage() {
         .get<{ events: CalendarEvent[] }>(`/calendar/events?start=${start.toISOString()}&end=${end.toISOString()}`)
         .then((d) => d.events)
         .catch(() => [] as CalendarEvent[]),
-    ]).then(([t, e]) => {
-      setWeekTasks(t);
-      setWeekEvents(e);
-    });
+    ])
+      .then(([t, e]) => {
+        setWeekTasks(t);
+        setWeekEvents(e);
+      })
+      .catch((err) => console.error("Failed to load week tasks", err));
   }, [tab]);
 
   useEffect(() => {
     if (tab !== "month") return;
     const start = startOfMonth(monthCursor);
     const end = endOfMonth(monthCursor);
-    api.get<Task[]>(`/tasks/calendar?start=${toDateParam(start)}&end=${toDateParam(end)}`).then(setMonthTasks);
+    api
+      .get<Task[]>(`/tasks/calendar?start=${toDateParam(start)}&end=${toDateParam(end)}`)
+      .then(setMonthTasks)
+      .catch((err) => console.error("Failed to load month tasks", err));
   }, [tab, monthCursor]);
 
   async function toggleDone(task: Task) {
-    const updated = await api.patch<Task>(`/tasks/${task.id}`, {
-      status: task.status === "done" ? "confirmed" : "done",
-    });
-    setDayTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
-    setNoDateTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
-    setWeekTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
-    setMonthTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+    setError(null);
+    try {
+      const updated = await api.patch<Task>(`/tasks/${task.id}`, {
+        status: task.status === "done" ? "confirmed" : "done",
+      });
+      setDayTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+      setNoDateTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+      setWeekTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+      setMonthTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Не вдалося оновити задачу");
+    }
   }
 
   const syncedEventIds = new Set(dayTasks.map((t) => t.google_event_id).filter((id): id is string => id !== null));
@@ -138,6 +162,7 @@ export default function TasksPage() {
           <div className="date-label">{formatFullDate(selectedDate)}</div>
         </div>
       </div>
+      {error && <p style={{ padding: "0 20px", color: "var(--error)", fontSize: 13 }}>{error}</p>}
 
       <div className="view-tabs">
         <button className={`view-tab${tab === "day" ? " active" : ""}`} onClick={() => setTab("day")}>День</button>

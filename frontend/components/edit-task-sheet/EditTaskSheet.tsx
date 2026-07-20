@@ -33,7 +33,7 @@ function EditTaskSheetForm({
   onClose: () => void;
 }) {
   const [title, setTitle] = useState(task.title);
-  const [date, setDate] = useState(task.deadline ?? "");
+  const [date, setDate] = useState(task.deadline ?? task.scheduled_at?.slice(0, 10) ?? "");
   const [time, setTime] = useState(task.scheduled_at ? task.scheduled_at.slice(11, 16) : "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);

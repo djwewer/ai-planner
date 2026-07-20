@@ -39,8 +39,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    loadUser();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    (() => {
+      loadUser();
+    })();
   }, []);
 
   function setToken(token: string) {
