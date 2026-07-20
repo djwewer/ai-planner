@@ -82,6 +82,7 @@ def list_calendar_events(
                 "title": e.get("summary", ""),
                 "start": e.get("start", {}).get("dateTime") or e.get("start", {}).get("date"),
                 "end": e.get("end", {}).get("dateTime") or e.get("end", {}).get("date"),
+                "all_day": "date" in e.get("start", {}),
             }
             for e in events
         ]

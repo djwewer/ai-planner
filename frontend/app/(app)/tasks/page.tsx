@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarCheck2, Check } from "lucide-react";
+import { CalendarCheck2, CalendarDays, Check } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { Task, CalendarEvent } from "@/lib/types";
 import { toDateParam, isSameDay, capitalize, startOfWeek, startOfMonth, endOfMonth } from "@/lib/date";
@@ -116,7 +116,9 @@ export default function TasksPage() {
   }
 
   const syncedEventIds = new Set(dayTasks.map((t) => t.google_event_id).filter((id): id is string => id !== null));
+  const unsyncedDayEvents = dayEvents.filter((e) => !syncedEventIds.has(e.id));
   const allDayTasks = dayTasks.filter((t) => !t.scheduled_at && t.deadline);
+  const allDayEvents = unsyncedDayEvents.filter((e) => e.all_day);
   const timelineItems: TimelineItem[] = [
     ...dayTasks
       .filter((t) => t.scheduled_at)
@@ -127,12 +129,13 @@ export default function TasksPage() {
         taskId: t.id,
         done: t.status === "done",
       })),
-    ...dayEvents
-      .filter((e) => !syncedEventIds.has(e.id))
+    ...unsyncedDayEvents
+      .filter((e) => !e.all_day)
       .map((e) => ({ time: e.start, title: e.title, source: "gcal" as const })),
   ].sort((a, b) => (a.time < b.time ? -1 : 1));
 
-  const dayIsEmpty = allDayTasks.length === 0 && timelineItems.length === 0 && noDateTasks.length === 0;
+  const dayIsEmpty =
+    allDayTasks.length === 0 && allDayEvents.length === 0 && timelineItems.length === 0 && noDateTasks.length === 0;
 
   const monthDatesWithTasks = new Set(
     monthTasks
@@ -163,13 +166,14 @@ export default function TasksPage() {
       </div>
       {error && <p style={{ padding: "0 20px", color: "var(--error)", fontSize: 13 }}>{error}</p>}
 
-      <div className="view-tabs">
-        <button className={`view-tab${tab === "day" ? " active" : ""}`} onClick={() => setTab("day")}>День</button>
-        <button className={`view-tab${tab === "week" ? " active" : ""}`} onClick={() => setTab("week")}>Тиждень</button>
-        <button className={`view-tab${tab === "month" ? " active" : ""}`} onClick={() => setTab("month")}>Місяць</button>
+      <div className="sticky-toolbar">
+        <div className="view-tabs">
+          <button className={`view-tab${tab === "day" ? " active" : ""}`} onClick={() => setTab("day")}>День</button>
+          <button className={`view-tab${tab === "week" ? " active" : ""}`} onClick={() => setTab("week")}>Тиждень</button>
+          <button className={`view-tab${tab === "month" ? " active" : ""}`} onClick={() => setTab("month")}>Місяць</button>
+        </div>
+        {tab === "day" && <DateStrip selected={selectedDate} onSelect={setSelectedDate} />}
       </div>
-
-      {tab === "day" && <DateStrip selected={selectedDate} onSelect={setSelectedDate} />}
 
       <div className="scroll">
         {tab === "day" && (
@@ -186,11 +190,11 @@ export default function TasksPage() {
                 <p>На цей день нічого не заплановано.</p>
               </div>
             )}
-            {!dayLoading && allDayTasks.length > 0 && (
+            {!dayLoading && (allDayTasks.length > 0 || allDayEvents.length > 0) && (
               <div className="section-block">
                 <div className="section-title">Увесь день</div>
                 {allDayTasks.map((task) => (
-                  <div className="flat-row" key={task.id}>
+                  <div className="flat-row" key={`task-${task.id}`}>
                     <button
                       className={`checkbox${task.status === "done" ? " done" : ""}`}
                       aria-label="Позначити виконаним"
@@ -201,11 +205,18 @@ export default function TasksPage() {
                     <div className="flat-title">{task.title}</div>
                   </div>
                 ))}
+                {allDayEvents.map((event) => (
+                  <div className="flat-row" key={`event-${event.id}`}>
+                    <div className="flat-icon gcal"><CalendarDays size={14} /></div>
+                    <div className="flat-title">{event.title}</div>
+                  </div>
+                ))}
               </div>
             )}
             {!dayLoading && timelineItems.length > 0 && (
               <Timeline
                 items={timelineItems}
+                isToday={isSameDay(selectedDate, new Date())}
                 onToggle={(taskId) => {
                   const task = dayTasks.find((t) => t.id === taskId);
                   if (task) toggleDone(task);

@@ -7,6 +7,7 @@ export type Task = {
   deadline: string | null;
   scheduled_at: string | null;
   google_event_id: string | null;
+  google_task_id: string | null;
   status: TaskStatus;
   created_at: string;
   updated_at: string;
@@ -17,4 +18,5 @@ export type CalendarEvent = {
   title: string;
   start: string;
   end: string;
+  all_day: boolean;
 };
