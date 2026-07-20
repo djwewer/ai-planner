@@ -24,14 +24,15 @@ function SettingsPageInner() {
   }, []);
 
   useEffect(() => {
-    (() => {
-      if (searchParams.get("error") === "calendar_connect_failed") {
-        setError("Не вдалося підключити Google Calendar, спробуйте ще раз");
-      }
-      if (searchParams.get("connected") === "1") {
-        setMe((current) => (current ? { ...current, google_calendar_connected: true } : current));
-      }
-    })();
+    // OAuth redirect result arrives via URL params, not props/state — syncing it into
+    // state here is the correct place for it, so the resulting extra render is expected.
+    if (searchParams.get("error") === "calendar_connect_failed") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setError("Не вдалося підключити Google Calendar, спробуйте ще раз");
+    }
+    if (searchParams.get("connected") === "1") {
+      setMe((current) => (current ? { ...current, google_calendar_connected: true } : current));
+    }
   }, [searchParams]);
 
   useEffect(() => {

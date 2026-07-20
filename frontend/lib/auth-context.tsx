@@ -39,9 +39,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    (() => {
-      loadUser();
-    })();
+    // Only ever runs on mount; loadUser is intentionally omitted from deps.
+    // Its no-token branch sets state synchronously, which is the correct
+    // behavior for an initial auth check, not an anti-pattern to avoid.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadUser();
   }, []);
 
   function setToken(token: string) {

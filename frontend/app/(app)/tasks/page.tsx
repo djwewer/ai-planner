@@ -33,35 +33,34 @@ export default function TasksPage() {
   useEffect(() => {
     if (tab !== "day") return;
     let cancelled = false;
-    function run() {
-      setDayLoading(true);
-      const dateParam = toDateParam(selectedDate);
-      const taskRequest = isSameDay(selectedDate, new Date())
-        ? api.get<Task[]>("/tasks/today")
-        : api.get<Task[]>(`/tasks/calendar?start=${dateParam}&end=${dateParam}`);
-      const dayStart = new Date(selectedDate);
-      dayStart.setHours(0, 0, 0, 0);
-      const dayEnd = new Date(selectedDate);
-      dayEnd.setHours(23, 59, 59, 999);
-      Promise.all([
-        taskRequest,
-        api
-          .get<{ events: CalendarEvent[] }>(`/calendar/events?start=${dayStart.toISOString()}&end=${dayEnd.toISOString()}`)
-          .then((d) => d.events)
-          .catch(() => [] as CalendarEvent[]),
-      ])
-        .then(([fetchedTasks, fetchedEvents]) => {
-          if (cancelled) return;
-          setDayTasks(fetchedTasks);
-          setDayEvents(fetchedEvents);
-          setDayLoading(false);
-        })
-        .catch(() => {
-          if (cancelled) return;
-          setDayLoading(false);
-        });
-    }
-    run();
+    // Resetting the loading flag per fetch (date/tab change) is the correct behavior here —
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setDayLoading(true);
+    const dateParam = toDateParam(selectedDate);
+    const taskRequest = isSameDay(selectedDate, new Date())
+      ? api.get<Task[]>("/tasks/today")
+      : api.get<Task[]>(`/tasks/calendar?start=${dateParam}&end=${dateParam}`);
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(selectedDate);
+    dayEnd.setHours(23, 59, 59, 999);
+    Promise.all([
+      taskRequest,
+      api
+        .get<{ events: CalendarEvent[] }>(`/calendar/events?start=${dayStart.toISOString()}&end=${dayEnd.toISOString()}`)
+        .then((d) => d.events)
+        .catch(() => [] as CalendarEvent[]),
+    ])
+      .then(([fetchedTasks, fetchedEvents]) => {
+        if (cancelled) return;
+        setDayTasks(fetchedTasks);
+        setDayEvents(fetchedEvents);
+        setDayLoading(false);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setDayLoading(false);
+      });
     return () => {
       cancelled = true;
     };
