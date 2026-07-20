@@ -117,14 +117,14 @@ def webhook(
 
     message = body.get("message")
     if message is not None:
-        text = message.get("text", "")
-        chat_id = message["chat"]["id"]
-        if text.startswith("/start "):
-            code = text[len("/start ") :].strip()
-            try:
+        try:
+            text = message.get("text", "")
+            chat_id = message["chat"]["id"]
+            if text.startswith("/start "):
+                code = text[len("/start ") :].strip()
                 _handle_start(chat_id, code, db)
-            except Exception:
-                logger.exception("failed to handle /start for chat_id=%s", chat_id)
+        except Exception:
+            logger.exception("failed to handle message update")
         return {"ok": True}
 
     callback_query = body.get("callback_query")

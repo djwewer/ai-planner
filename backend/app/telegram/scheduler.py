@@ -108,7 +108,10 @@ def send_daily_digest_and_overdue_nudges() -> None:
         today = now.date()
         users = db.query(User).filter(User.telegram_chat_id.isnot(None)).all()
         for user in users:
-            _send_digest_for_user(user, today, db)
-            _send_overdue_nudges_for_user(user, now, today, db)
+            try:
+                _send_digest_for_user(user, today, db)
+                _send_overdue_nudges_for_user(user, now, today, db)
+            except Exception:
+                logger.exception("failed to process daily digest/nudges for user_id=%s", user.id)
     finally:
         db.close()

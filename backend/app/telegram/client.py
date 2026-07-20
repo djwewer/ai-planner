@@ -12,7 +12,10 @@ def send_message(chat_id: int, text: str, reply_markup: dict | None = None) -> d
     if reply_markup is not None:
         payload["reply_markup"] = reply_markup
     response = httpx.post(_api_url("sendMessage"), json=payload)
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise RuntimeError(f"Telegram API error {e.response.status_code}") from None
     return response.json()["result"]
 
 
@@ -23,7 +26,10 @@ def edit_message(
     if reply_markup is not None:
         payload["reply_markup"] = reply_markup
     response = httpx.post(_api_url("editMessageText"), json=payload)
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise RuntimeError(f"Telegram API error {e.response.status_code}") from None
 
 
 def answer_callback_query(callback_query_id: str, text: str | None = None) -> None:
@@ -31,4 +37,7 @@ def answer_callback_query(callback_query_id: str, text: str | None = None) -> No
     if text is not None:
         payload["text"] = text
     response = httpx.post(_api_url("answerCallbackQuery"), json=payload)
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise RuntimeError(f"Telegram API error {e.response.status_code}") from None
