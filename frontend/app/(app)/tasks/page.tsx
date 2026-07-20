@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { CalendarCheck2, Check } from "lucide-react";
 import { api } from "@/lib/api";
 import { Task, CalendarEvent } from "@/lib/types";
-import { toDateParam, isSameDay, capitalize } from "@/lib/date";
+import { toDateParam, isSameDay, capitalize, startOfWeek } from "@/lib/date";
 import { DateStrip } from "@/components/date-strip/DateStrip";
 import { Timeline, TimelineItem } from "@/components/timeline/Timeline";
+import { WeekList } from "@/components/week-list/WeekList";
 
 type Tab = "day" | "week" | "month";
 
@@ -21,6 +22,8 @@ export default function TasksPage() {
   const [dayEvents, setDayEvents] = useState<CalendarEvent[]>([]);
   const [noDateTasks, setNoDateTasks] = useState<Task[]>([]);
   const [dayLoading, setDayLoading] = useState(true);
+  const [weekTasks, setWeekTasks] = useState<Task[]>([]);
+  const [weekEvents, setWeekEvents] = useState<CalendarEvent[]>([]);
 
   useEffect(() => {
     if (tab !== "day") return;
@@ -51,12 +54,30 @@ export default function TasksPage() {
     api.get<Task[]>("/tasks").then((all) => setNoDateTasks(all.filter((t) => !t.deadline && !t.scheduled_at)));
   }, [tab]);
 
+  useEffect(() => {
+    if (tab !== "week") return;
+    const start = startOfWeek(new Date());
+    const end = new Date(start);
+    end.setDate(end.getDate() + 6);
+    Promise.all([
+      api.get<Task[]>(`/tasks/calendar?start=${toDateParam(start)}&end=${toDateParam(end)}`),
+      api
+        .get<{ events: CalendarEvent[] }>(`/calendar/events?start=${start.toISOString()}&end=${end.toISOString()}`)
+        .then((d) => d.events)
+        .catch(() => [] as CalendarEvent[]),
+    ]).then(([t, e]) => {
+      setWeekTasks(t);
+      setWeekEvents(e);
+    });
+  }, [tab]);
+
   async function toggleDone(task: Task) {
     const updated = await api.patch<Task>(`/tasks/${task.id}`, {
       status: task.status === "done" ? "confirmed" : "done",
     });
     setDayTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
     setNoDateTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+    setWeekTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
   }
 
   const syncedEventIds = new Set(dayTasks.map((t) => t.google_event_id).filter((id): id is string => id !== null));
@@ -155,7 +176,10 @@ export default function TasksPage() {
             )}
           </>
         )}
-        {tab === "week" && <div />}
+        {tab === "week" && <WeekList tasks={weekTasks} events={weekEvents} onToggle={(taskId) => {
+          const task = weekTasks.find((t) => t.id === taskId);
+          if (task) toggleDone(task);
+        }} />}
         {tab === "month" && <div />}
       </div>
     </>
