@@ -10,7 +10,6 @@ calendar_oauth.register(
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
     client_kwargs={
         "scope": "openid email https://www.googleapis.com/auth/calendar",
-        "access_type": "offline",
         "prompt": "consent",
     },
 )

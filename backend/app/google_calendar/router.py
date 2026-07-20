@@ -20,7 +20,7 @@ router = APIRouter(tags=["calendar"])
 async def connect(request: Request, current_user: User = Depends(get_current_user)):
     request.session["calendar_connect_user_id"] = current_user.id
     rv = await calendar_oauth.google_calendar.create_authorization_url(
-        settings.google_calendar_redirect_uri
+        settings.google_calendar_redirect_uri, access_type="offline"
     )
     await calendar_oauth.google_calendar.save_authorize_data(
         request, redirect_uri=settings.google_calendar_redirect_uri, **rv
