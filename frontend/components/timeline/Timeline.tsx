@@ -45,17 +45,31 @@ export function Timeline({
 
   const [drag, setDrag] = useState<{ taskId: number; startTop: number; currentTop: number } | null>(null);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pointerStartRef = useRef<{ x: number; y: number; top: number } | null>(null);
+  const pointerStartRef = useRef<{ pointerId: number; x: number; y: number; top: number } | null>(null);
   const draggingRef = useRef(false);
 
   useEffect(() => {
     anchorRef.current?.scrollIntoView({ block: "start" });
   }, [isToday]);
 
+  // A single shared gesture-tracking ref only tolerates one pointer at a time — every
+  // handler below ignores events from a pointerId that didn't arm the current gesture,
+  // so a second simultaneous touch on another card can't corrupt or hijack it.
+  function resetDragState() {
+    if (holdTimerRef.current) {
+      clearTimeout(holdTimerRef.current);
+      holdTimerRef.current = null;
+    }
+    pointerStartRef.current = null;
+    draggingRef.current = false;
+    setDrag(null);
+  }
+
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, taskId: number, top: number) {
+    if (pointerStartRef.current) return;
     const target = e.currentTarget;
     const pointerId = e.pointerId;
-    pointerStartRef.current = { x: e.clientX, y: e.clientY, top };
+    pointerStartRef.current = { pointerId, x: e.clientX, y: e.clientY, top };
     holdTimerRef.current = setTimeout(() => {
       draggingRef.current = true;
       target.setPointerCapture(pointerId);
@@ -65,7 +79,7 @@ export function Timeline({
   }
 
   function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
-    if (!pointerStartRef.current) return;
+    if (!pointerStartRef.current || e.pointerId !== pointerStartRef.current.pointerId) return;
     const dx = e.clientX - pointerStartRef.current.x;
     const dy = e.clientY - pointerStartRef.current.y;
     if (!draggingRef.current) {
@@ -81,19 +95,23 @@ export function Timeline({
   }
 
   function endDrag(e: React.PointerEvent<HTMLDivElement>, commit: boolean) {
-    if (holdTimerRef.current) {
-      clearTimeout(holdTimerRef.current);
-      holdTimerRef.current = null;
-    }
-    if (draggingRef.current) {
+    if (!pointerStartRef.current || e.pointerId !== pointerStartRef.current.pointerId) return;
+    const wasDragging = draggingRef.current;
+    if (wasDragging) {
       e.currentTarget.releasePointerCapture(e.pointerId);
-      if (commit && drag && drag.currentTop !== drag.startTop) {
-        onReschedule(drag.taskId, drag.currentTop);
-      }
     }
-    pointerStartRef.current = null;
-    draggingRef.current = false;
-    setDrag(null);
+    if (wasDragging && commit && drag && drag.currentTop !== drag.startTop) {
+      onReschedule(drag.taskId, drag.currentTop);
+    }
+    resetDragState();
+  }
+
+  // Defensive cleanup: if capture is lost outside our own release call (e.g. the
+  // dragged card unmounts mid-gesture because the selected date changes), make sure
+  // we don't leave draggingRef/drag pointed at a task that's no longer being touched.
+  function handleLostPointerCapture(e: React.PointerEvent<HTMLDivElement>) {
+    if (!pointerStartRef.current || e.pointerId !== pointerStartRef.current.pointerId) return;
+    resetDragState();
   }
 
   return (
@@ -121,6 +139,7 @@ export function Timeline({
                 onPointerMove={draggable ? handlePointerMove : undefined}
                 onPointerUp={draggable ? (e) => endDrag(e, true) : undefined}
                 onPointerCancel={draggable ? (e) => endDrag(e, false) : undefined}
+                onLostPointerCapture={draggable ? handleLostPointerCapture : undefined}
               >
                 {item.source === "taska" && item.taskId !== undefined && (
                   <button
