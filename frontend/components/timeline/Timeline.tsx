@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { Check, CalendarDays } from "lucide-react";
+import { Check } from "lucide-react";
+import { computeLayout, PX_PER_HOUR, START_HOUR } from "@/lib/timeline-layout";
 
-const START_HOUR = 0;
 const END_HOUR = 23;
-const PX_PER_HOUR = 64;
 const DEFAULT_SCROLL_HOUR = 7;
 
 export type TimelineItem = {
@@ -31,6 +30,7 @@ export function Timeline({
   const nowHour = now.getHours() + now.getMinutes() / 60;
   const showNowLine = isToday;
   const scrollAnchorHour = Math.floor(isToday ? Math.max(START_HOUR, nowHour - 1) : DEFAULT_SCROLL_HOUR);
+  const positionedItems = computeLayout(items);
 
   useEffect(() => {
     anchorRef.current?.scrollIntoView({ block: "start" });
@@ -46,16 +46,14 @@ export function Timeline({
           </div>
         ))}
         <div className="event-layer">
-          {items.map((item, i) => {
+          {positionedItems.map((item, i) => {
             const d = new Date(item.time);
-            const hour = d.getHours() + d.getMinutes() / 60;
-            const top = (hour - START_HOUR) * PX_PER_HOUR;
             const timeLabel = d.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
             return (
               <div
                 key={`${item.source}-${item.taskId ?? i}`}
                 className={`event-card${item.source === "gcal" ? " gcal" : ""}${item.done ? " done" : ""}`}
-                style={{ top, height: 52 }}
+                style={{ top: item.top, left: item.left, width: item.width }}
               >
                 {item.source === "taska" && item.taskId !== undefined && (
                   <button
@@ -66,13 +64,8 @@ export function Timeline({
                     {item.done && <Check size={12} />}
                   </button>
                 )}
-                <div className="ev-body">
-                  <div className="ev-title">{item.title}</div>
-                  <div className="ev-meta">
-                    {item.source === "gcal" && <CalendarDays size={12} />}
-                    {timeLabel}
-                  </div>
-                </div>
+                <span className="ev-time">{timeLabel}</span>
+                <span className="ev-title">{item.title}</span>
               </div>
             );
           })}
