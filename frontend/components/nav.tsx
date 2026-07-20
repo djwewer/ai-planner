@@ -12,9 +12,13 @@ export function Nav() {
       {" · "}
       <Link href="/tasks">Задачі</Link>
       {" · "}
+      <Link href="/calendar">Календар</Link>
+      {" · "}
       <Link href="/capture">Занотувати</Link>
       {" · "}
       <Link href="/inbox">Вхідні</Link>
+      {" · "}
+      <Link href="/settings">Налаштування</Link>
       {" · "}
       <button onClick={logout}>Вийти</button>
     </nav>
