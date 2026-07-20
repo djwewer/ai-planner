@@ -12,6 +12,7 @@ type Task = {
   priority: number;
   deadline: string | null;
   scheduled_at: string | null;
+  google_event_id: string | null;
   status: string;
 };
 
@@ -151,7 +152,11 @@ export default function CalendarPage() {
       getGroup(task.deadline).allDay.push(task);
     }
   }
+  const syncedEventIds = new Set(
+    tasks.map((task) => task.google_event_id).filter((id): id is string => id !== null)
+  );
   for (const event of events) {
+    if (syncedEventIds.has(event.id)) continue;
     getGroup(dateKeyOf(event.start)).timed.push({
       time: event.start,
       label: `${event.title} (Google Calendar)`,
