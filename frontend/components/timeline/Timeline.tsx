@@ -43,7 +43,7 @@ export function Timeline({
   const scrollAnchorHour = Math.floor(isToday ? Math.max(START_HOUR, nowHour - 1) : DEFAULT_SCROLL_HOUR);
   const positionedItems = computeLayout(items);
 
-  const [drag, setDrag] = useState<{ taskId: number; currentTop: number } | null>(null);
+  const [drag, setDrag] = useState<{ taskId: number; startTop: number; currentTop: number } | null>(null);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pointerStartRef = useRef<{ x: number; y: number; top: number } | null>(null);
   const draggingRef = useRef(false);
@@ -59,7 +59,8 @@ export function Timeline({
     holdTimerRef.current = setTimeout(() => {
       draggingRef.current = true;
       target.setPointerCapture(pointerId);
-      setDrag({ taskId, currentTop: top });
+      const snapped = snapTop(top);
+      setDrag({ taskId, startTop: snapped, currentTop: snapped });
     }, HOLD_MS);
   }
 
@@ -86,11 +87,8 @@ export function Timeline({
     }
     if (draggingRef.current) {
       e.currentTarget.releasePointerCapture(e.pointerId);
-      if (commit && drag) {
-        const original = pointerStartRef.current?.top;
-        if (original === undefined || drag.currentTop !== original) {
-          onReschedule(drag.taskId, drag.currentTop);
-        }
+      if (commit && drag && drag.currentTop !== drag.startTop) {
+        onReschedule(drag.taskId, drag.currentTop);
       }
     }
     pointerStartRef.current = null;
