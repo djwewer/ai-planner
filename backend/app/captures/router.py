@@ -53,6 +53,7 @@ def create_capture(
             title=item.title,
             priority=item.priority,
             deadline=item.deadline,
+            scheduled_at=item.scheduled_at,
             status="draft",
         )
         db.add(task)

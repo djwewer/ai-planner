@@ -40,8 +40,12 @@ TRIAGE_TOOL = {
                                 "type": ["string", "null"],
                                 "description": "ISO 8601 date (YYYY-MM-DD) if a deadline was mentioned or can be inferred, otherwise null.",
                             },
+                            "scheduled_at": {
+                                "type": ["string", "null"],
+                                "description": "ISO 8601 date-time (YYYY-MM-DDTHH:MM:SS) ONLY if the text states a specific time of day for the task (e.g. \"at 3pm\", \"о 15:00\"). Otherwise null -- never guess or infer a time just because a task sounds time-sensitive.",
+                            },
                         },
-                        "required": ["title", "priority", "deadline"],
+                        "required": ["title", "priority", "deadline", "scheduled_at"],
                     },
                 }
             },
@@ -55,6 +59,7 @@ class ExtractedTask(BaseModel):
     title: str
     priority: int = Field(ge=1, le=4)
     deadline: Optional[datetime.date]
+    scheduled_at: Optional[datetime.datetime]
 
 
 def _upcoming_weekdays_reference(today: datetime.date) -> str:
@@ -110,7 +115,14 @@ def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
                     "today's date for a weekday name, even if today happens to fall "
                     "on that weekday, and never substitute a different weekday's date "
                     'than the one named. Only the words "today"/"сьогодні" map to '
-                    "today's own date. Keep each "
+                    "today's own date. If the text states a SPECIFIC time of day for a "
+                    'task (e.g. "at 3pm", "о 15:00", "о 9 ранку"), set scheduled_at to '
+                    "the combined date and time as an ISO 8601 date-time "
+                    "(YYYY-MM-DDTHH:MM:SS), using the resolved deadline date (or "
+                    "today's date if no date was otherwise mentioned) as the date "
+                    "part. If no specific time is stated, leave scheduled_at null — "
+                    "do not guess or infer a time just because a task sounds "
+                    "time-sensitive. Keep each "
                     "task's title in the same language as the input text — do not "
                     "translate it. Assign a priority from 1 (urgent) to 4 (low) based "
                     "on urgency cues in the text (e.g. \"urgent\"/\"терміново\" is "

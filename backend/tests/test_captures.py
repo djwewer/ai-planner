@@ -15,8 +15,8 @@ def test_create_capture_creates_draft_tasks(client, monkeypatch):
         "extract_tasks",
         MagicMock(
             return_value=[
-                ExtractedTask(title="Buy milk", priority=2, deadline=None),
-                ExtractedTask(title="Call John", priority=4, deadline=None),
+                ExtractedTask(title="Buy milk", priority=2, deadline=None, scheduled_at=None),
+                ExtractedTask(title="Call John", priority=4, deadline=None, scheduled_at=None),
             ]
         ),
     )

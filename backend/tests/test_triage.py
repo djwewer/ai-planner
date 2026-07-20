@@ -25,8 +25,8 @@ def test_extract_tasks_returns_parsed_tasks(monkeypatch):
     mock_create = MagicMock(
         return_value=_mock_tool_response(
             [
-                {"title": "Buy milk", "priority": 2, "deadline": "2026-07-20"},
-                {"title": "Call John", "priority": 4, "deadline": None},
+                {"title": "Buy milk", "priority": 2, "deadline": "2026-07-20", "scheduled_at": None},
+                {"title": "Call John", "priority": 4, "deadline": None, "scheduled_at": None},
             ]
         )
     )
@@ -72,7 +72,7 @@ def test_extract_tasks_raises_on_missing_tool_use(monkeypatch):
 def test_extract_tasks_raises_on_out_of_range_priority(monkeypatch):
     mock_create = MagicMock(
         return_value=_mock_tool_response(
-            [{"title": "Buy milk", "priority": 7, "deadline": None}]
+            [{"title": "Buy milk", "priority": 7, "deadline": None, "scheduled_at": None}]
         )
     )
     monkeypatch.setattr(triage.client.chat.completions, "create", mock_create)
