@@ -15,6 +15,7 @@ WORKING_HOURS_START = 9
 WORKING_HOURS_END = 18
 SLOT_STEP_MINUTES = 30
 MAX_SUGGESTIONS = 3
+EVENT_TIME_ZONE = "Europe/Kyiv"
 
 
 def _get_access_token(user: User) -> str:
@@ -82,8 +83,8 @@ def create_event(user: User, title: str, scheduled_at: datetime.datetime) -> str
         headers={"Authorization": f"Bearer {access_token}"},
         json={
             "summary": title,
-            "start": {"dateTime": scheduled_at.isoformat()},
-            "end": {"dateTime": end.isoformat()},
+            "start": {"dateTime": scheduled_at.isoformat(), "timeZone": EVENT_TIME_ZONE},
+            "end": {"dateTime": end.isoformat(), "timeZone": EVENT_TIME_ZONE},
         },
     )
     response.raise_for_status()
@@ -100,8 +101,8 @@ def update_event(
         headers={"Authorization": f"Bearer {access_token}"},
         json={
             "summary": title,
-            "start": {"dateTime": scheduled_at.isoformat()},
-            "end": {"dateTime": end.isoformat()},
+            "start": {"dateTime": scheduled_at.isoformat(), "timeZone": EVENT_TIME_ZONE},
+            "end": {"dateTime": end.isoformat(), "timeZone": EVENT_TIME_ZONE},
         },
     )
     response.raise_for_status()

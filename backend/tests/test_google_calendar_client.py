@@ -60,19 +60,38 @@ def test_suggest_free_slots_skips_busy_time():
 
 
 def test_create_event_returns_event_id(monkeypatch):
-    monkeypatch.setattr(
-        google_calendar_client.httpx,
-        "post",
-        MagicMock(
-            side_effect=[
-                _mock_response({"access_token": "fake-access-token"}),
-                _mock_response({"id": "fake-event-id"}),
-            ]
-        ),
+    mock_post = MagicMock(
+        side_effect=[
+            _mock_response({"access_token": "fake-access-token"}),
+            _mock_response({"id": "fake-event-id"}),
+        ]
     )
+    monkeypatch.setattr(google_calendar_client.httpx, "post", mock_post)
 
     event_id = google_calendar_client.create_event(
         _FakeUser(), "Купити молоко", datetime.datetime(2026, 7, 20, 14, 0)
     )
 
     assert event_id == "fake-event-id"
+
+
+def test_create_event_includes_time_zone(monkeypatch):
+    """Regression test: Google Calendar's API rejects a dateTime with no UTC
+    offset and no explicit timeZone field (400 Bad Request) -- both start
+    and end must carry a timeZone since scheduled_at is a naive datetime."""
+    mock_post = MagicMock(
+        side_effect=[
+            _mock_response({"access_token": "fake-access-token"}),
+            _mock_response({"id": "fake-event-id"}),
+        ]
+    )
+    monkeypatch.setattr(google_calendar_client.httpx, "post", mock_post)
+
+    google_calendar_client.create_event(
+        _FakeUser(), "Купити молоко", datetime.datetime(2026, 7, 20, 14, 0)
+    )
+
+    event_call = mock_post.call_args_list[1]
+    payload = event_call.kwargs["json"]
+    assert payload["start"]["timeZone"] == google_calendar_client.EVENT_TIME_ZONE
+    assert payload["end"]["timeZone"] == google_calendar_client.EVENT_TIME_ZONE
