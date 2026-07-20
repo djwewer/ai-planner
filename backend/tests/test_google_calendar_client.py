@@ -95,3 +95,22 @@ def test_create_event_includes_time_zone(monkeypatch):
     payload = event_call.kwargs["json"]
     assert payload["start"]["timeZone"] == google_calendar_client.EVENT_TIME_ZONE
     assert payload["end"]["timeZone"] == google_calendar_client.EVENT_TIME_ZONE
+
+
+def test_create_event_is_transparent(monkeypatch):
+    """A Taska task's timed calendar entry shouldn't block time the way a real
+    meeting does -- it must be marked free/transparent, not busy."""
+    mock_post = MagicMock(
+        side_effect=[
+            _mock_response({"access_token": "fake-access-token"}),
+            _mock_response({"id": "fake-event-id"}),
+        ]
+    )
+    monkeypatch.setattr(google_calendar_client.httpx, "post", mock_post)
+
+    google_calendar_client.create_event(
+        _FakeUser(), "Купити молоко", datetime.datetime(2026, 7, 20, 14, 0)
+    )
+
+    event_call = mock_post.call_args_list[1]
+    assert event_call.kwargs["json"]["transparency"] == "transparent"

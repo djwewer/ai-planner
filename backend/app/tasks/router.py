@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.google_calendar import client as google_calendar_client
+from app.google_calendar import tasks_client as google_tasks_client
 from app.models import Task, User
 from app.schemas import TaskCreate, TaskOut, TaskUpdate
 from app.security import get_current_user
@@ -17,35 +18,67 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
 
-def _sync_task_calendar(current_user: User, task: Task, db: Session) -> None:
-    if task.scheduled_at is None:
-        if task.google_event_id is not None:
-            try:
-                google_calendar_client.delete_event(current_user, task.google_event_id)
-            except Exception:
-                logger.exception("failed to delete calendar event for task_id=%s", task.id)
-                return
+def _sync_task_google(current_user: User, task: Task, db: Session) -> None:
+    """Mirror a task into Google, as whichever representation fits it.
+
+    A task with a specific time (``scheduled_at``) becomes a free/transparent
+    Calendar Event, since it has a duration a Google Task can't express. A
+    task with only a ``deadline`` date becomes a Google Task (checkbox item),
+    since a blocking Calendar Event misrepresents a plain to-do. A task loses
+    its Google-side counterpart entirely once it's rejected/drafted or has no
+    date at all, and any past representation that no longer fits is deleted.
+    """
+    should_sync = (
+        task.status in ("confirmed", "done")
+        and current_user.google_calendar_refresh_token is not None
+    )
+    wants_event = should_sync and task.scheduled_at is not None
+    wants_task = should_sync and task.scheduled_at is None and task.deadline is not None
+
+    if not wants_event and task.google_event_id is not None:
+        try:
+            google_calendar_client.delete_event(current_user, task.google_event_id)
             task.google_event_id = None
             db.commit()
-        return
+        except Exception:
+            logger.exception("failed to delete calendar event for task_id=%s", task.id)
 
-    if task.status not in ("confirmed", "done"):
-        return
-    if current_user.google_calendar_refresh_token is None:
-        return
+    if not wants_task and task.google_task_id is not None:
+        try:
+            google_tasks_client.delete_task(current_user, task.google_task_id)
+            task.google_task_id = None
+            db.commit()
+        except Exception:
+            logger.exception("failed to delete google task for task_id=%s", task.id)
 
-    try:
-        if task.google_event_id is None:
-            task.google_event_id = google_calendar_client.create_event(
-                current_user, task.title, task.scheduled_at
-            )
-        else:
-            google_calendar_client.update_event(
-                current_user, task.google_event_id, task.title, task.scheduled_at
-            )
-        db.commit()
-    except Exception:
-        logger.exception("failed to sync calendar event for task_id=%s", task.id)
+    if wants_event:
+        try:
+            if task.google_event_id is None:
+                task.google_event_id = google_calendar_client.create_event(
+                    current_user, task.title, task.scheduled_at
+                )
+            else:
+                google_calendar_client.update_event(
+                    current_user, task.google_event_id, task.title, task.scheduled_at
+                )
+            db.commit()
+        except Exception:
+            logger.exception("failed to sync calendar event for task_id=%s", task.id)
+
+    if wants_task:
+        try:
+            completed = task.status == "done"
+            if task.google_task_id is None:
+                task.google_task_id = google_tasks_client.create_task(
+                    current_user, task.title, task.deadline, completed=completed
+                )
+            else:
+                google_tasks_client.update_task(
+                    current_user, task.google_task_id, task.title, task.deadline, completed=completed
+                )
+            db.commit()
+        except Exception:
+            logger.exception("failed to sync google task for task_id=%s", task.id)
 
 
 @router.post("", response_model=TaskOut, status_code=status.HTTP_201_CREATED)
@@ -58,7 +91,7 @@ def create_task(
     db.add(task)
     db.commit()
     db.refresh(task)
-    _sync_task_calendar(current_user, task, db)
+    _sync_task_google(current_user, task, db)
     return task
 
 
@@ -162,7 +195,7 @@ def update_task(
         setattr(task, field, value)
     db.commit()
     db.refresh(task)
-    _sync_task_calendar(current_user, task, db)
+    _sync_task_google(current_user, task, db)
     return task
 
 
@@ -178,5 +211,10 @@ def delete_task(
             google_calendar_client.delete_event(current_user, task.google_event_id)
         except Exception:
             logger.exception("failed to delete calendar event for task_id=%s", task.id)
+    if task.google_task_id is not None:
+        try:
+            google_tasks_client.delete_task(current_user, task.google_task_id)
+        except Exception:
+            logger.exception("failed to delete google task for task_id=%s", task.id)
     db.delete(task)
     db.commit()

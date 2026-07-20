@@ -85,6 +85,9 @@ def create_event(user: User, title: str, scheduled_at: datetime.datetime) -> str
             "summary": title,
             "start": {"dateTime": scheduled_at.isoformat(), "timeZone": EVENT_TIME_ZONE},
             "end": {"dateTime": end.isoformat(), "timeZone": EVENT_TIME_ZONE},
+            # A task tracker's timed tasks shouldn't block the calendar the way a
+            # real meeting does -- mark them free/transparent, not busy.
+            "transparency": "transparent",
         },
     )
     response.raise_for_status()
@@ -103,6 +106,7 @@ def update_event(
             "summary": title,
             "start": {"dateTime": scheduled_at.isoformat(), "timeZone": EVENT_TIME_ZONE},
             "end": {"dateTime": end.isoformat(), "timeZone": EVENT_TIME_ZONE},
+            "transparency": "transparent",
         },
     )
     response.raise_for_status()

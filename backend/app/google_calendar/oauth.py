@@ -9,7 +9,10 @@ calendar_oauth.register(
     client_secret=settings.google_client_secret,
     server_metadata_url="https://accounts.google.com/.well-known/openid-configuration",
     client_kwargs={
-        "scope": "openid email https://www.googleapis.com/auth/calendar",
+        "scope": (
+            "openid email https://www.googleapis.com/auth/calendar "
+            "https://www.googleapis.com/auth/tasks"
+        ),
         "prompt": "consent",
     },
 )

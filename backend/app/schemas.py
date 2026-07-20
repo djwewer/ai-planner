@@ -51,6 +51,7 @@ class TaskOut(BaseModel):
     deadline: Optional[datetime.date]
     scheduled_at: Optional[datetime.datetime]
     google_event_id: Optional[str]
+    google_task_id: Optional[str]
     status: str
     created_at: datetime.datetime
     updated_at: datetime.datetime

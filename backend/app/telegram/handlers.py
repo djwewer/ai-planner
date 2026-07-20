@@ -5,7 +5,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import Task, TelegramLinkCode, User
-from app.tasks.router import _sync_task_calendar
+from app.tasks.router import _sync_task_google
 from app.telegram import client as telegram_client
 from app.telegram.notifications import render_batch_message
 
@@ -64,7 +64,7 @@ def handle_callback_query(callback_query: dict, db: Session) -> None:
     if task.status == "draft" and action == "approve":
         task.status = "confirmed"
         db.commit()
-        _sync_task_calendar(task.user, task, db)
+        _sync_task_google(task.user, task, db)
     elif task.status == "draft" and action == "reject":
         task.status = "rejected"
         db.commit()

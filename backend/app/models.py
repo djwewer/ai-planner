@@ -41,6 +41,7 @@ class Task(Base):
     deadline = Column(Date, nullable=True)
     scheduled_at = Column(DateTime, nullable=True)
     google_event_id = Column(String, nullable=True)
+    google_task_id = Column(String, nullable=True)
     reminder_sent_at = Column(DateTime, nullable=True)
     last_overdue_nudge_at = Column(DateTime, nullable=True)
     status = Column(String, nullable=False, default="confirmed")
