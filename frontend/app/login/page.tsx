@@ -39,9 +39,9 @@ function LoginPageInner() {
   return (
     <div className="auth-screen">
       <div className="auth-brand">
-        <Image src={logo} alt="Taska" width={56} height={56} priority />
+        <Image src={logo} alt="Taska" width={112} height={112} priority />
         <h1>Taska</h1>
-        <p>Увійдіть, щоб побачити свій план</p>
+        <p>Увійдіть, щоб побачити свої задачі</p>
       </div>
 
       {oauthError === "email_not_verified" && (
