@@ -18,6 +18,7 @@ class UserOut(BaseModel):
     id: int
     email: EmailStr
     google_calendar_connected: bool = False
+    telegram_connected: bool = False
 
     class Config:
         from_attributes = True

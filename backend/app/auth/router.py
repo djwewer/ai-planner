@@ -47,6 +47,7 @@ def me(current_user: User = Depends(get_current_user)):
         id=current_user.id,
         email=current_user.email,
         google_calendar_connected=current_user.google_calendar_refresh_token is not None,
+        telegram_connected=current_user.telegram_chat_id is not None,
     )
 
 
