@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { CalendarCheck2, Check } from "lucide-react";
 import { api } from "@/lib/api";
 import { Task, CalendarEvent } from "@/lib/types";
-import { toDateParam, isSameDay, capitalize, startOfWeek } from "@/lib/date";
+import { toDateParam, isSameDay, capitalize, startOfWeek, startOfMonth, endOfMonth } from "@/lib/date";
 import { DateStrip } from "@/components/date-strip/DateStrip";
 import { Timeline, TimelineItem } from "@/components/timeline/Timeline";
-import { WeekList } from "@/components/week-list/WeekList";
+import { WeekList, WeekItem, WeekRow } from "@/components/week-list/WeekList";
+import { MonthGrid } from "@/components/month-grid/MonthGrid";
 
 type Tab = "day" | "week" | "month";
 
@@ -24,6 +25,9 @@ export default function TasksPage() {
   const [dayLoading, setDayLoading] = useState(true);
   const [weekTasks, setWeekTasks] = useState<Task[]>([]);
   const [weekEvents, setWeekEvents] = useState<CalendarEvent[]>([]);
+  const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
+  const [selectedMonthDate, setSelectedMonthDate] = useState(new Date());
+  const [monthTasks, setMonthTasks] = useState<Task[]>([]);
 
   useEffect(() => {
     if (tab !== "day") return;
@@ -71,6 +75,13 @@ export default function TasksPage() {
     });
   }, [tab]);
 
+  useEffect(() => {
+    if (tab !== "month") return;
+    const start = startOfMonth(monthCursor);
+    const end = endOfMonth(monthCursor);
+    api.get<Task[]>(`/tasks/calendar?start=${toDateParam(start)}&end=${toDateParam(end)}`).then(setMonthTasks);
+  }, [tab, monthCursor]);
+
   async function toggleDone(task: Task) {
     const updated = await api.patch<Task>(`/tasks/${task.id}`, {
       status: task.status === "done" ? "confirmed" : "done",
@@ -78,6 +89,7 @@ export default function TasksPage() {
     setDayTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
     setNoDateTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
     setWeekTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+    setMonthTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
   }
 
   const syncedEventIds = new Set(dayTasks.map((t) => t.google_event_id).filter((id): id is string => id !== null));
@@ -98,6 +110,25 @@ export default function TasksPage() {
   ].sort((a, b) => (a.time < b.time ? -1 : 1));
 
   const dayIsEmpty = allDayTasks.length === 0 && timelineItems.length === 0 && noDateTasks.length === 0;
+
+  const monthDatesWithTasks = new Set(
+    monthTasks
+      .map((t) => (t.scheduled_at ? t.scheduled_at.slice(0, 10) : t.deadline))
+      .filter((d): d is string => !!d)
+  );
+
+  const monthDayItems: WeekItem[] = monthTasks
+    .filter((t) =>
+      t.scheduled_at ? isSameDay(new Date(t.scheduled_at), selectedMonthDate) : t.deadline === toDateParam(selectedMonthDate)
+    )
+    .map((t) => ({
+      time: t.scheduled_at ? t.scheduled_at.slice(11, 16) : null,
+      title: t.title,
+      source: "taska" as const,
+      taskId: t.id,
+      done: t.status === "done",
+    }))
+    .sort((a, b) => (a.time ?? "99:99").localeCompare(b.time ?? "99:99"));
 
   return (
     <>
@@ -180,7 +211,40 @@ export default function TasksPage() {
           const task = weekTasks.find((t) => t.id === taskId);
           if (task) toggleDone(task);
         }} />}
-        {tab === "month" && <div />}
+        {tab === "month" && (
+          <div className="section-block">
+            <MonthGrid
+              cursor={monthCursor}
+              selected={selectedMonthDate}
+              datesWithTasks={monthDatesWithTasks}
+              onShift={(delta) => setMonthCursor(new Date(monthCursor.getFullYear(), monthCursor.getMonth() + delta, 1))}
+              onToday={() => {
+                const t = new Date();
+                setMonthCursor(startOfMonth(t));
+                setSelectedMonthDate(t);
+              }}
+              onSelect={setSelectedMonthDate}
+            />
+            <div className="month-day-tasks">
+              <div className="section-title">
+                {capitalize(selectedMonthDate.toLocaleDateString("uk-UA", { day: "numeric", month: "long", year: "numeric" }))}
+              </div>
+              <div className="month-day-scroll">
+                {monthDayItems.length === 0 && <div className="week-empty">Немає задач на цю дату</div>}
+                {monthDayItems.map((item, i) => (
+                  <WeekRow
+                    key={`${item.source}-${item.taskId ?? i}`}
+                    item={item}
+                    onToggle={(taskId) => {
+                      const task = monthTasks.find((t) => t.id === taskId);
+                      if (task) toggleDone(task);
+                    }}
+                  />
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
