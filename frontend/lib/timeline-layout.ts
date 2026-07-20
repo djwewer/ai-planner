@@ -61,3 +61,21 @@ export function computeLayout(items: TimelineItem[]): PositionedItem[] {
   }
   return positioned;
 }
+
+export const SNAP_MINUTES = 15;
+const MINUTES_PER_DAY = 24 * 60;
+
+export function topToMinutes(top: number): number {
+  return Math.max(0, Math.min(MINUTES_PER_DAY - 1, Math.round((top / PX_PER_HOUR) * 60)));
+}
+
+function minutesToTop(minutes: number): number {
+  return (minutes / 60) * PX_PER_HOUR;
+}
+
+export function snapTop(top: number): number {
+  const rawMinutes = topToMinutes(top);
+  const snapped = Math.round(rawMinutes / SNAP_MINUTES) * SNAP_MINUTES;
+  const clamped = Math.max(0, Math.min(MINUTES_PER_DAY - SNAP_MINUTES, snapped));
+  return minutesToTop(clamped);
+}

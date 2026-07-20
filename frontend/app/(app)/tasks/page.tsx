@@ -9,6 +9,7 @@ import { DateStrip } from "@/components/date-strip/DateStrip";
 import { Timeline, TimelineItem } from "@/components/timeline/Timeline";
 import { WeekList, WeekItem, WeekRow } from "@/components/week-list/WeekList";
 import { MonthGrid } from "@/components/month-grid/MonthGrid";
+import { topToMinutes } from "@/lib/timeline-layout";
 
 type Tab = "day" | "week" | "month";
 
@@ -112,6 +113,24 @@ export default function TasksPage() {
       setMonthTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Не вдалося оновити задачу");
+    }
+  }
+
+  async function rescheduleTask(task: Task, newTop: number) {
+    const minutes = topToMinutes(newTop);
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    const newScheduledAt = `${toDateParam(new Date(task.scheduled_at as string))}T${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:00`;
+
+    setError(null);
+    const previousDayTasks = dayTasks;
+    setDayTasks((current) => current.map((t) => (t.id === task.id ? { ...t, scheduled_at: newScheduledAt } : t)));
+    try {
+      const updated = await api.patch<Task>(`/tasks/${task.id}`, { scheduled_at: newScheduledAt });
+      setDayTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+    } catch (err) {
+      setDayTasks(previousDayTasks);
+      setError(err instanceof ApiError ? err.message : "Не вдалося перенести задачу");
     }
   }
 
@@ -220,6 +239,10 @@ export default function TasksPage() {
                 onToggle={(taskId) => {
                   const task = dayTasks.find((t) => t.id === taskId);
                   if (task) toggleDone(task);
+                }}
+                onReschedule={(taskId, newTop) => {
+                  const task = dayTasks.find((t) => t.id === taskId);
+                  if (task) rescheduleTask(task, newTop);
                 }}
               />
             )}
