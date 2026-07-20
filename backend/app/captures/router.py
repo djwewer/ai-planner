@@ -10,6 +10,7 @@ from app.database import get_db
 from app.models import Capture, Task, User
 from app.schemas import TaskOut
 from app.security import get_current_user
+from app.telegram.notifications import notify_new_tasks_ready
 
 logger = logging.getLogger(__name__)
 
@@ -61,4 +62,12 @@ def create_capture(
     db.commit()
     for task in tasks:
         db.refresh(task)
+
+    try:
+        notify_new_tasks_ready(current_user, tasks)
+    except Exception:
+        logger.exception(
+            "failed to send new-tasks-ready notification for capture_id=%s", capture.id
+        )
+
     return tasks
