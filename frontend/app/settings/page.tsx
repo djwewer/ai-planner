@@ -10,15 +10,18 @@ type Me = {
   id: number;
   email: string;
   google_calendar_connected: boolean;
+  telegram_connected: boolean;
 };
 
 function SettingsPageInner() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [connected, setConnected] = useState(false);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const [telegramConnected, setTelegramConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [connecting, setConnecting] = useState(false);
+  const [connectingCalendar, setConnectingCalendar] = useState(false);
+  const [connectingTelegram, setConnectingTelegram] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -28,7 +31,10 @@ function SettingsPageInner() {
 
   useEffect(() => {
     if (user) {
-      api.get<Me>("/auth/me").then((me) => setConnected(me.google_calendar_connected));
+      api.get<Me>("/auth/me").then((me) => {
+        setCalendarConnected(me.google_calendar_connected);
+        setTelegramConnected(me.telegram_connected);
+      });
     }
   }, [user]);
 
@@ -37,13 +43,23 @@ function SettingsPageInner() {
       setError("Не вдалося підключити Google Calendar, спробуйте ще раз");
     }
     if (searchParams.get("connected") === "1") {
-      setConnected(true);
+      setCalendarConnected(true);
     }
   }, [searchParams]);
 
-  async function handleConnect() {
+  useEffect(() => {
+    if (telegramConnected) return;
+    const interval = setInterval(() => {
+      api.get<Me>("/auth/me").then((me) => {
+        if (me.telegram_connected) setTelegramConnected(true);
+      });
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [telegramConnected]);
+
+  async function handleConnectCalendar() {
     setError(null);
-    setConnecting(true);
+    setConnectingCalendar(true);
     try {
       const { authorize_url } = await api.get<{ authorize_url: string }>(
         "/auth/google/calendar/connect"
@@ -51,7 +67,20 @@ function SettingsPageInner() {
       window.location.href = authorize_url;
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Не вдалося підключити Google Calendar");
-      setConnecting(false);
+      setConnectingCalendar(false);
+    }
+  }
+
+  async function handleConnectTelegram() {
+    setError(null);
+    setConnectingTelegram(true);
+    try {
+      const { deep_link } = await api.get<{ deep_link: string }>("/telegram/connect");
+      window.location.href = deep_link;
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Не вдалося підключити Telegram");
+    } finally {
+      setConnectingTelegram(false);
     }
   }
 
@@ -64,11 +93,21 @@ function SettingsPageInner() {
       {error && <p>{error}</p>}
       <section>
         <h2>Google Calendar</h2>
-        {connected ? (
+        {calendarConnected ? (
           <p>✅ Підключено</p>
         ) : (
-          <button onClick={handleConnect} disabled={connecting}>
-            {connecting ? "Підключення…" : "Підключити Google Calendar"}
+          <button onClick={handleConnectCalendar} disabled={connectingCalendar}>
+            {connectingCalendar ? "Підключення…" : "Підключити Google Calendar"}
+          </button>
+        )}
+      </section>
+      <section>
+        <h2>Telegram</h2>
+        {telegramConnected ? (
+          <p>✅ Підключено</p>
+        ) : (
+          <button onClick={handleConnectTelegram} disabled={connectingTelegram}>
+            {connectingTelegram ? "Підключення…" : "Підключити Telegram бота"}
           </button>
         )}
       </section>
