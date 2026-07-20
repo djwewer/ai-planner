@@ -9,6 +9,8 @@ import { BottomNav } from "@/components/bottom-nav/BottomNav";
 import { SnackbarProvider } from "@/lib/snackbar-context";
 import { CaptureFlowProvider } from "@/lib/capture-flow-context";
 import { CaptureFlow } from "@/components/capture-flow/CaptureFlow";
+import { EditTaskProvider } from "@/lib/edit-task-context";
+import { EditTaskSheet } from "@/components/edit-task-sheet/EditTaskSheet";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -32,11 +34,14 @@ export default function AppLayout({ children }: { children: ReactNode }) {
   return (
     <SnackbarProvider>
       <CaptureFlowProvider>
-        <div className="app-shell">
-          <div className="screen">{children}</div>
-          <BottomNav inboxCount={inboxCount} />
-          <CaptureFlow />
-        </div>
+        <EditTaskProvider>
+          <div className="app-shell">
+            <div className="screen">{children}</div>
+            <BottomNav inboxCount={inboxCount} />
+            <CaptureFlow />
+            <EditTaskSheet />
+          </div>
+        </EditTaskProvider>
       </CaptureFlowProvider>
     </SnackbarProvider>
   );
