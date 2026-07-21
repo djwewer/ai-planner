@@ -157,3 +157,36 @@ def test_today_sorts_by_deadline_within_same_priority(client, db_session):
     assert response.status_code == 200
     titles = [t["title"] for t in response.json()]
     assert titles == ["Same priority yesterday", "Same priority today"]
+
+
+def test_today_includes_tasks_scheduled_today_with_no_deadline(client, db_session):
+    # Regression test: a task with only scheduled_at (no deadline) set for today
+    # was silently excluded from /tasks/today, even though it's clearly a "today"
+    # task -- the endpoint only checked deadline, ignoring scheduled_at entirely.
+    token = _signup_and_get_token(client, email="scheduledowner@example.com")
+    user = db_session.query(User).filter(User.email == "scheduledowner@example.com").first()
+
+    today = datetime.date.today()
+    tomorrow = today + datetime.timedelta(days=1)
+
+    scheduled_today = Task(
+        user_id=user.id,
+        title="Scheduled today",
+        status="confirmed",
+        priority=3,
+        scheduled_at=datetime.datetime.combine(today, datetime.time(9, 0)),
+    )
+    scheduled_tomorrow = Task(
+        user_id=user.id,
+        title="Scheduled tomorrow",
+        status="confirmed",
+        priority=3,
+        scheduled_at=datetime.datetime.combine(tomorrow, datetime.time(9, 0)),
+    )
+    db_session.add_all([scheduled_today, scheduled_tomorrow])
+    db_session.commit()
+
+    response = client.get("/tasks/today", headers=_auth_headers(token))
+    assert response.status_code == 200
+    titles = [t["title"] for t in response.json()]
+    assert titles == ["Scheduled today"]

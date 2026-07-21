@@ -3,7 +3,7 @@ import logging
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -114,13 +114,17 @@ def list_today_tasks(
     current_user: User = Depends(get_current_user), db: Session = Depends(get_db)
 ):
     today = datetime.date.today()
+    today_start = datetime.datetime.combine(today, datetime.time.min)
+    today_end = datetime.datetime.combine(today, datetime.time.max)
     return (
         db.query(Task)
         .filter(
             Task.user_id == current_user.id,
             Task.status.in_(["confirmed", "done"]),
-            Task.deadline.isnot(None),
-            Task.deadline <= today,
+            or_(
+                and_(Task.deadline.isnot(None), Task.deadline <= today),
+                Task.scheduled_at.between(today_start, today_end),
+            ),
         )
         .order_by(Task.scheduled_at.asc().nullslast(), Task.priority.asc(), Task.deadline.asc())
         .all()
