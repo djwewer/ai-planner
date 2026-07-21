@@ -1,5 +1,3 @@
-import logging
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
@@ -9,8 +7,6 @@ from app.database import get_db
 from app.models import User
 from app.schemas import TaskOut
 from app.security import get_current_user
-
-logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/captures", tags=["captures"])
 

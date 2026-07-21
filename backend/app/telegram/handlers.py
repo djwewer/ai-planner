@@ -82,6 +82,10 @@ def handle_voice_message(chat_id: int, file_id: str, db: Session) -> None:
         telegram_client.send_message(chat_id, "Не вдалося розпізнати мову, спробуйте ще раз")
         return
 
+    if not text.strip():
+        telegram_client.send_message(chat_id, "Не вдалося розпізнати мову, спробуйте ще раз")
+        return
+
     handle_capture_message(chat_id, text, db)
 
 

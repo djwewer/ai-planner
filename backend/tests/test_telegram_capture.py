@@ -148,3 +148,34 @@ def test_voice_message_from_unlinked_chat_replies_not_linked_without_transcribin
 
     mock_get_file.assert_not_called()
     mock_send.assert_called_once_with(555555, telegram_handlers.NOT_LINKED_MESSAGE)
+
+
+def test_voice_message_with_empty_transcription_replies_error_without_capturing(
+    client, monkeypatch, db_session
+):
+    from app.models import User
+
+    monkeypatch.setattr(telegram_handlers.telegram_client, "send_chat_action", MagicMock())
+    monkeypatch.setattr(
+        telegram_handlers.telegram_client, "get_file", MagicMock(return_value="voice/silent.oga")
+    )
+    monkeypatch.setattr(
+        telegram_handlers.telegram_client, "download_file", MagicMock(return_value=b"silence")
+    )
+    monkeypatch.setattr(telegram_handlers, "transcribe_audio", MagicMock(return_value="   "))
+    mock_send = MagicMock()
+    monkeypatch.setattr(telegram_handlers.telegram_client, "send_message", mock_send)
+    mock_process = MagicMock()
+    monkeypatch.setattr(telegram_handlers, "process_capture", mock_process)
+
+    _signup(client, email="voicesilent@example.com")
+    user = db_session.query(User).filter(User.email == "voicesilent@example.com").first()
+    user.telegram_chat_id = 666
+    db_session.commit()
+
+    telegram_handlers.handle_update(
+        {"message": {"chat": {"id": 666}, "voice": {"file_id": "voice-file-id-4"}}}, db_session
+    )
+
+    mock_send.assert_called_once_with(666, "Не вдалося розпізнати мову, спробуйте ще раз")
+    mock_process.assert_not_called()
