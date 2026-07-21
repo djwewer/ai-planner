@@ -55,7 +55,7 @@ export function WeekTimeline({
           <div className="hour-line" />
         </div>
       ))}
-      <div className="week-grid-columns">
+      <div className="week-grid-columns" style={{ height: hours.length * PX_PER_HOUR }}>
         {days.map((d, dayIndex) => {
           const positioned = computeLayout(timedItemsByDay[dayIndex]);
           return (
