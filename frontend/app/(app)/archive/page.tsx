@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Archive as ArchiveIcon, Check } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Archive as ArchiveIcon, ArrowLeft, Check } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { Task } from "@/lib/types";
 import { toDateParam } from "@/lib/date";
@@ -33,6 +34,7 @@ function groupByDay(tasks: Task[]): { label: string; tasks: Task[] }[] {
 }
 
 export default function ArchivePage() {
+  const router = useRouter();
   const [tasks, setTasks] = useState<Task[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,10 +57,14 @@ export default function ArchivePage() {
   return (
     <>
       <div className="screen-header">
+        <button className="icon-btn" aria-label="Назад до налаштувань" onClick={() => router.push("/settings")}>
+          <ArrowLeft />
+        </button>
         <div>
           <h2>Архів</h2>
           <div className="date-label">Виконані задачі</div>
         </div>
+        <span style={{ width: 44 }} aria-hidden="true" />
       </div>
       {error && <p style={{ padding: "0 20px", color: "var(--error)", fontSize: 13 }}>{error}</p>}
       <div className="scroll">

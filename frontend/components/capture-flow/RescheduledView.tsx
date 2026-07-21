@@ -24,7 +24,7 @@ export function RescheduledView() {
 
   function handleReview() {
     close();
-    router.push("/tasks");
+    router.push("/calendar");
   }
 
   if (!rescheduledTask) return null;

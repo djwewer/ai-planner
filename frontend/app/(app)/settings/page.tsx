@@ -1,8 +1,9 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { CalendarDays, Check, Send } from "lucide-react";
+import { Archive, CalendarDays, Check, ChevronRight, Send } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
 
@@ -122,6 +123,16 @@ function SettingsPageInner() {
                 </button>
               )}
             </div>
+            <Link href="/archive" className="integration-card settings-link-card">
+              <div className="integration-top" style={{ marginBottom: 0 }}>
+                <div className="integration-icon"><Archive /></div>
+                <div style={{ flex: 1 }}>
+                  <div className="integration-name">Архів</div>
+                  <div className="integration-detail" style={{ margin: 0 }}>Виконані задачі</div>
+                </div>
+                <ChevronRight color="var(--text-secondary)" />
+              </div>
+            </Link>
             <div style={{ margin: "0 20px" }}>
               <button className="secondary-btn" onClick={logout}>Вийти з акаунта</button>
             </div>
