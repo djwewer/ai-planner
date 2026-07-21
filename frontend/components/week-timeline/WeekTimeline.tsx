@@ -8,7 +8,10 @@ import { isSameDay } from "@/lib/date";
 const END_HOUR = 23;
 const HOLD_MS = 300;
 const MOVE_CANCEL_THRESHOLD = 8;
-const LABEL_WIDTH = 44;
+// Matches globals.css's `.week-grid-columns { left: 64px; ... }` (20px body padding + 44px hour
+// label) -- absolute positioning ignores the body's own padding, so this offset for the floating
+// drag overlay can't be derived from the label width alone.
+const GRID_LEFT_OFFSET = 64;
 
 export type WeekTimelineItem = {
   time: string;
@@ -61,6 +64,7 @@ export function WeekTimeline({
 
   const anchorRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+  const columnsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     anchorRef.current?.scrollIntoView({ block: "start" });
   }, []);
@@ -98,8 +102,8 @@ export function WeekTimeline({
   useEffect(() => resetDragState, []);
 
   function columnWidth(): number {
-    const gridWidth = gridRef.current?.clientWidth ?? 0;
-    return Math.max(1, (gridWidth - LABEL_WIDTH) / 7);
+    const width = columnsRef.current?.clientWidth ?? 0;
+    return Math.max(1, width / 7);
   }
 
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, taskId: number, dayIndex: number, top: number) {
@@ -175,7 +179,7 @@ export function WeekTimeline({
           <div className="hour-line" />
         </div>
       ))}
-      <div className="week-grid-columns">
+      <div className="week-grid-columns" ref={columnsRef} style={{ height: hours.length * PX_PER_HOUR }}>
         {days.map((d, dayIndex) => {
           const dayItems =
             drag && drag.taskId !== undefined
@@ -220,7 +224,7 @@ export function WeekTimeline({
         <div
           className="event-card dragging"
           // eslint-disable-next-line react-hooks/refs
-          style={{ top: drag.currentTop, left: LABEL_WIDTH + drag.currentDayIndex * columnWidth(), width: columnWidth() }}
+          style={{ top: drag.currentTop, left: GRID_LEFT_OFFSET + drag.currentDayIndex * columnWidth(), width: columnWidth() }}
         >
           <span className="drag-time-label">
             {shortWeekday(days[drag.currentDayIndex])}, {formatTopAsTime(drag.currentTop)}
