@@ -59,3 +59,29 @@ def get_updates(
     except httpx.HTTPStatusError as e:
         raise RuntimeError(f"Telegram API error {e.response.status_code}") from None
     return response.json()["result"]
+
+
+def get_file(file_id: str) -> str:
+    response = httpx.get(_api_url("getFile"), params={"file_id": file_id})
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise RuntimeError(f"Telegram API error {e.response.status_code}") from None
+    return response.json()["result"]["file_path"]
+
+
+def download_file(file_path: str) -> bytes:
+    url = f"https://api.telegram.org/file/bot{settings.telegram_bot_token}/{file_path}"
+    response = httpx.get(url)
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        raise RuntimeError(f"Telegram API error {e.response.status_code}") from None
+    return response.content
+
+
+def send_chat_action(chat_id: int, action: str) -> None:
+    try:
+        httpx.post(_api_url("sendChatAction"), json={"chat_id": chat_id, "action": action})
+    except Exception:
+        pass
