@@ -7,6 +7,7 @@ import { Task } from "@/lib/types";
 import { toDateParam, isSameDay, capitalize } from "@/lib/date";
 import { DateStrip } from "@/components/date-strip/DateStrip";
 import { PRIORITY_LABELS } from "@/lib/priority";
+import { useEditTask } from "@/lib/edit-task-context";
 
 type PriorityFilter = "all" | 1 | 2 | 3 | 4;
 type SortMode = "time" | "priority";
@@ -36,6 +37,7 @@ export default function TasksPage() {
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>("all");
   const [sortMode, setSortMode] = useState<SortMode>("time");
   const [pendingDeleteId, setPendingDeleteId] = useState<number | null>(null);
+  const editTask = useEditTask();
 
   useEffect(() => {
     let cancelled = false;
@@ -80,6 +82,22 @@ export default function TasksPage() {
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Не вдалося позначити задачу виконаною");
     }
+  }
+
+  function handleOpenDetail(task: Task) {
+    editTask.open(
+      task,
+      (updated) => {
+        setTasks((current) =>
+          (current ?? [])
+            .map((t) => (t.id === updated.id ? updated : t))
+            .filter((t) => t.status === "confirmed")
+        );
+      },
+      (deletedId) => {
+        setTasks((current) => (current ?? []).filter((t) => t.id !== deletedId));
+      }
+    );
   }
 
   const filtered = (tasks ?? [])
@@ -154,11 +172,14 @@ export default function TasksPage() {
         {tasks !== null && filtered.length > 0 && (
           <div className="section-block">
             {filtered.map((task) => (
-              <div className="task-row" key={task.id}>
+              <div className="task-row" key={task.id} onClick={() => handleOpenDetail(task)}>
                 <button
                   className="checkbox"
                   aria-label="Позначити виконаним"
-                  onClick={() => handleMarkDone(task)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMarkDone(task);
+                  }}
                 >
                   <Check size={12} />
                 </button>
@@ -170,7 +191,7 @@ export default function TasksPage() {
                   </div>
                 </div>
                 {pendingDeleteId === task.id ? (
-                  <div className="task-row-confirm">
+                  <div className="task-row-confirm" onClick={(e) => e.stopPropagation()}>
                     <button className="text-btn" onClick={() => setPendingDeleteId(null)}>Скасувати</button>
                     <button
                       className="icon-btn danger"
@@ -184,7 +205,10 @@ export default function TasksPage() {
                   <button
                     className="icon-btn danger"
                     aria-label="Видалити задачу"
-                    onClick={() => setPendingDeleteId(task.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPendingDeleteId(task.id);
+                    }}
                   >
                     <Trash2 size={18} />
                   </button>
