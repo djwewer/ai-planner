@@ -93,6 +93,22 @@ def test_extract_tasks_prompt_includes_weekday_reference_table(monkeypatch):
     assert "Friday(next)=2026-07-31" in system_content
 
 
+def test_extract_tasks_capitalizes_lowercase_title(monkeypatch):
+    # The model is instructed to capitalize titles itself, but this is a
+    # deterministic fallback in case it doesn't -- the app must never show
+    # a lowercase-first-letter task title regardless of model compliance.
+    mock_create = MagicMock(
+        return_value=_mock_tool_response(
+            [{"title": "buy milk from IKEA", "priority": 3, "deadline": None, "scheduled_at": None}]
+        )
+    )
+    monkeypatch.setattr(triage.client.chat.completions, "create", mock_create)
+
+    result = triage.extract_tasks("buy milk from ikea", datetime.date(2026, 7, 19))
+
+    assert result[0].title == "Buy milk from IKEA"
+
+
 def test_extract_tasks_prompt_next_wednesday_is_one_week_later(monkeypatch):
     # Regression test for a reported bug: today=Monday 2026-07-20, "next
     # Wednesday" must resolve to 2026-07-29 (one week out), not 2026-07-22

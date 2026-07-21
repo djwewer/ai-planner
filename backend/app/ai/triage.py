@@ -29,7 +29,14 @@ TRIAGE_TOOL = {
                         "properties": {
                             "title": {
                                 "type": "string",
-                                "description": "The task title, in the same language as the input text.",
+                                "description": (
+                                    "A short, clean summary of the task -- not a verbatim "
+                                    'restatement of the user\'s phrasing. E.g. for "I need to '
+                                    'go get a haircut at 1pm" the title should be "Haircut", '
+                                    'not "Go to do a haircut". Keep it as brief as possible '
+                                    "while staying clear, in the same language as the input "
+                                    "text, and always start it with a capital letter."
+                                ),
                             },
                             "priority": {
                                 "type": "integer",
@@ -60,6 +67,16 @@ class ExtractedTask(BaseModel):
     priority: int = Field(ge=1, le=4)
     deadline: Optional[datetime.date]
     scheduled_at: Optional[datetime.datetime]
+
+
+def _capitalize_first(text: str) -> str:
+    """Uppercase only the first character, leaving the rest untouched.
+
+    A deterministic fallback in case the model doesn't follow the prompt's
+    capitalization instruction -- str.capitalize() would also lowercase the
+    rest of the string (mangling acronyms like "IKEA"), which we don't want.
+    """
+    return text[:1].upper() + text[1:] if text else text
 
 
 def _upcoming_weekdays_reference(today: datetime.date) -> str:
@@ -124,7 +141,11 @@ def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
                     "do not guess or infer a time just because a task sounds "
                     "time-sensitive. Keep each "
                     "task's title in the same language as the input text — do not "
-                    "translate it. Assign a priority from 1 (urgent) to 4 (low) based "
+                    "translate it. Each title must be a short, clean summary of the "
+                    'action, not a verbatim restatement of the user\'s sentence — e.g. '
+                    'for "I need to go get a haircut at 1pm" the title should be '
+                    '"Haircut", not "Go to do a haircut". Always capitalize the first '
+                    "letter of every title. Assign a priority from 1 (urgent) to 4 (low) based "
                     "on urgency cues in the text (e.g. \"urgent\"/\"терміново\" is "
                     "priority 1). If no deadline is mentioned or inferrable: for "
                     f"priority 1 (urgent) tasks, use today's date ({today.isoformat()}) "
@@ -145,7 +166,10 @@ def extract_tasks(raw_text: str, today: datetime.date) -> list[ExtractedTask]:
             if tool_call.function.name == "extract_tasks":
                 logger.info("triage raw response: %s", tool_call.function.arguments)
                 raw_tasks = json.loads(tool_call.function.arguments).get("tasks", [])
-                return [ExtractedTask(**task) for task in raw_tasks]
+                return [
+                    ExtractedTask(**{**task, "title": _capitalize_first(task["title"])})
+                    for task in raw_tasks
+                ]
 
     logger.warning("triage response had no matching tool call: %r", response)
     raise ValueError("OpenAI response did not include the expected tool call")
