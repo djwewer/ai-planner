@@ -119,20 +119,28 @@ export default function CalendarPage() {
     }
   }
 
-  async function rescheduleTask(task: Task, newTop: number) {
+  async function rescheduleTaskTo(task: Task, newDate: Date, newTop: number) {
     const minutes = topToMinutes(newTop);
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
-    const newScheduledAt = `${toDateParam(new Date(task.scheduled_at as string))}T${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:00`;
+    const newScheduledAt = `${toDateParam(newDate)}T${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:00`;
 
     setError(null);
     const previousDayTasks = dayTasks;
+    const previousWeekTasks = weekTasks;
+    const previousMonthTasks = monthTasks;
     setDayTasks((current) => current.map((t) => (t.id === task.id ? { ...t, scheduled_at: newScheduledAt } : t)));
+    setWeekTasks((current) => current.map((t) => (t.id === task.id ? { ...t, scheduled_at: newScheduledAt } : t)));
+    setMonthTasks((current) => current.map((t) => (t.id === task.id ? { ...t, scheduled_at: newScheduledAt } : t)));
     try {
       const updated = await api.patch<Task>(`/tasks/${task.id}`, { scheduled_at: newScheduledAt });
       setDayTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+      setWeekTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+      setMonthTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
     } catch (err) {
       setDayTasks(previousDayTasks);
+      setWeekTasks(previousWeekTasks);
+      setMonthTasks(previousMonthTasks);
       setError(err instanceof ApiError ? err.message : "Не вдалося перенести задачу");
     }
   }
@@ -346,7 +354,7 @@ export default function CalendarPage() {
                 }}
                 onReschedule={(taskId, newTop) => {
                   const task = dayTasks.find((t) => t.id === taskId);
-                  if (task) rescheduleTask(task, newTop);
+                  if (task) rescheduleTaskTo(task, new Date(task.scheduled_at as string), newTop);
                 }}
                 onOpenDetail={(taskId) => {
                   const task = dayTasks.find((t) => t.id === taskId);
@@ -383,6 +391,10 @@ export default function CalendarPage() {
             onToggle={(taskId) => {
               const task = weekTasks.find((t) => t.id === taskId);
               if (task) toggleDone(task);
+            }}
+            onReschedule={(taskId, newDate, newTop) => {
+              const task = weekTasks.find((t) => t.id === taskId);
+              if (task) rescheduleTaskTo(task, newDate, newTop);
             }}
             onOpenDetail={(taskId) => {
               const task = weekTasks.find((t) => t.id === taskId);
