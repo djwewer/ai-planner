@@ -99,6 +99,24 @@ button { font-family: var(--font-ui); }
 .now-line::before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); }
 .now-time { position: absolute; left: 4px; font-size: 11px; font-weight: 600; color: var(--brand); transform: translateY(-9px); background: var(--bg-app); padding-right: 2px; }
 
+/* ---------- Week grid ---------- */
+.week-grid-header { display: flex; padding: 4px 20px 0; flex-shrink: 0; }
+.week-grid-header-spacer { width: 44px; flex-shrink: 0; }
+.week-grid-day-header { flex: 1; text-align: center; padding-bottom: 8px; }
+.week-grid-day-header .dow { font-size: 10.5px; color: var(--text-secondary); font-weight: 500; }
+.week-grid-day-header .dom { width: 26px; height: 26px; margin: 2px auto 0; display: flex; align-items: center; justify-content: center; border-radius: var(--radius-full); font-size: 13px; font-weight: 600; }
+.week-grid-day-header.today .dom { background: var(--brand); color: #fff; }
+.week-grid-allday { display: flex; padding: 0 20px 8px; flex-shrink: 0; background: var(--bg-app); }
+.week-grid-allday-spacer { width: 44px; flex-shrink: 0; }
+.week-grid-allday-col { flex: 1; padding: 0 3px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.week-grid-allday-chip { font-size: 10px; font-weight: 600; padding: 3px 5px; border-radius: 5px; background: color-mix(in srgb, var(--task-pastel) 32%, white); color: color-mix(in srgb, var(--task-pastel) 75%, black); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.week-grid-allday-chip.gcal { background: color-mix(in srgb, var(--event-pastel) 32%, white); color: color-mix(in srgb, var(--event-pastel) 75%, black); cursor: default; }
+.week-grid-body { position: relative; padding: 4px 20px 24px; }
+.week-grid-columns { position: absolute; left: 44px; right: 0; top: 0; height: 100%; display: flex; }
+.week-grid-column { flex: 1; position: relative; border-left: 1px solid var(--border); }
+.week-grid-now-line { position: absolute; left: 44px; right: 0; height: 2px; background: var(--brand); z-index: 5; pointer-events: none; }
+.week-grid-now-line::before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); }
+
 /* ---------- Sections / rows ---------- */
 .section-block { padding: 4px 20px 8px; }
 .section-title { font-size: 13px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em; margin: 8px 0 10px; display: flex; align-items: baseline; gap: 6px; }

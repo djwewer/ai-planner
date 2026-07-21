@@ -8,7 +8,8 @@ import { toDateParam, isSameDay, capitalize, startOfWeek, startOfMonth, endOfMon
 import { useEditTask } from "@/lib/edit-task-context";
 import { DateStrip } from "@/components/date-strip/DateStrip";
 import { Timeline, TimelineItem } from "@/components/timeline/Timeline";
-import { WeekList, WeekItem, WeekRow } from "@/components/week-list/WeekList";
+import { WeekItem, WeekRow } from "@/components/week-list/WeekList";
+import { WeekTimeline, WeekTimelineItem } from "@/components/week-timeline/WeekTimeline";
 import { MonthGrid } from "@/components/month-grid/MonthGrid";
 import { topToMinutes } from "@/lib/timeline-layout";
 
@@ -173,6 +174,50 @@ export default function CalendarPage() {
       .map((e) => ({ time: e.start, title: e.title, source: "gcal" as const })),
   ].sort((a, b) => (a.time < b.time ? -1 : 1));
 
+  const weekGridStart = startOfWeek(new Date());
+  const weekGridDays = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(weekGridStart);
+    d.setDate(weekGridStart.getDate() + i);
+    return d;
+  });
+  const weekSyncedEventIds = new Set(weekTasks.map((t) => t.google_event_id).filter((id): id is string => id !== null));
+  const weekUnsyncedEvents = weekEvents.filter((e) => !weekSyncedEventIds.has(e.id));
+  const weekTimedItemsByDay: WeekTimelineItem[][] = weekGridDays.map((d) => {
+    const dayKey = d.toDateString();
+    return [
+      ...weekTasks
+        .filter((t) => t.scheduled_at && new Date(t.scheduled_at).toDateString() === dayKey)
+        .map((t) => ({
+          time: t.scheduled_at as string,
+          title: t.title,
+          source: "tenoa" as const,
+          taskId: t.id,
+          done: t.status === "done",
+        })),
+      ...weekUnsyncedEvents
+        .filter((e) => !e.all_day && new Date(e.start).toDateString() === dayKey)
+        .map((e) => ({ time: e.start, title: e.title, source: "gcal" as const })),
+    ];
+  });
+  const weekAllDayItemsByDay: WeekTimelineItem[][] = weekGridDays.map((d) => {
+    const dayKey = d.toDateString();
+    const dateParam = toDateParam(d);
+    return [
+      ...weekTasks
+        .filter((t) => !t.scheduled_at && t.deadline === dateParam)
+        .map((t) => ({
+          time: t.deadline as string,
+          title: t.title,
+          source: "tenoa" as const,
+          taskId: t.id,
+          done: t.status === "done",
+        })),
+      ...weekUnsyncedEvents
+        .filter((e) => e.all_day && new Date(e.start).toDateString() === dayKey)
+        .map((e) => ({ time: e.start, title: e.title, source: "gcal" as const })),
+    ];
+  });
+
   const dayIsEmpty =
     allDayTasks.length === 0 && allDayEvents.length === 0 && timelineItems.length === 0 && noDateTasks.length === 0;
 
@@ -212,6 +257,42 @@ export default function CalendarPage() {
           <button className={`view-tab${tab === "month" ? " active" : ""}`} onClick={() => setTab("month")}>Місяць</button>
         </div>
         {tab === "day" && <DateStrip selected={selectedDate} onSelect={setSelectedDate} />}
+        {tab === "week" && (
+          <>
+            <div className="week-grid-header">
+              <div className="week-grid-header-spacer" />
+              {weekGridDays.map((d, i) => {
+                const isToday = isSameDay(d, new Date());
+                return (
+                  <div className={`week-grid-day-header${isToday ? " today" : ""}`} key={i}>
+                    <div className="dow">{capitalize(d.toLocaleDateString("uk-UA", { weekday: "short" }))}</div>
+                    <div className="dom">{d.getDate()}</div>
+                  </div>
+                );
+              })}
+            </div>
+            {weekAllDayItemsByDay.some((items) => items.length > 0) && (
+              <div className="week-grid-allday">
+                <div className="week-grid-allday-spacer" />
+                {weekAllDayItemsByDay.map((items, i) => (
+                  <div className="week-grid-allday-col" key={i}>
+                    {items.map((item, j) => (
+                      <div
+                        key={`${item.source}-${item.taskId ?? j}`}
+                        className={`week-grid-allday-chip${item.source === "gcal" ? " gcal" : ""}`}
+                        onClick={
+                          item.taskId !== undefined ? () => handleOpenDetail(weekTasks.find((t) => t.id === item.taskId) as Task) : undefined
+                        }
+                      >
+                        {item.title}
+                      </div>
+                    ))}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       <div className="scroll">
@@ -296,9 +377,9 @@ export default function CalendarPage() {
           </>
         )}
         {tab === "week" && (
-          <WeekList
-            tasks={weekTasks}
-            events={weekEvents}
+          <WeekTimeline
+            weekStart={weekGridStart}
+            timedItemsByDay={weekTimedItemsByDay}
             onToggle={(taskId) => {
               const task = weekTasks.find((t) => t.id === taskId);
               if (task) toggleDone(task);
