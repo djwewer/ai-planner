@@ -295,10 +295,20 @@ export default function CalendarPage() {
             )}
           </>
         )}
-        {tab === "week" && <WeekList tasks={weekTasks} events={weekEvents} onToggle={(taskId) => {
-          const task = weekTasks.find((t) => t.id === taskId);
-          if (task) toggleDone(task);
-        }} />}
+        {tab === "week" && (
+          <WeekList
+            tasks={weekTasks}
+            events={weekEvents}
+            onToggle={(taskId) => {
+              const task = weekTasks.find((t) => t.id === taskId);
+              if (task) toggleDone(task);
+            }}
+            onOpenDetail={(taskId) => {
+              const task = weekTasks.find((t) => t.id === taskId);
+              if (task) handleOpenDetail(task);
+            }}
+          />
+        )}
         {tab === "month" && (
           <div className="section-block">
             <MonthGrid
@@ -326,6 +336,10 @@ export default function CalendarPage() {
                     onToggle={(taskId) => {
                       const task = monthTasks.find((t) => t.id === taskId);
                       if (task) toggleDone(task);
+                    }}
+                    onOpenDetail={(taskId) => {
+                      const task = monthTasks.find((t) => t.id === taskId);
+                      if (task) handleOpenDetail(task);
                     }}
                   />
                 ))}

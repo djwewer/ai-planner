@@ -12,13 +12,33 @@ export type WeekItem = {
   done?: boolean;
 };
 
-export function WeekRow({ item, onToggle }: { item: WeekItem; onToggle: (taskId: number) => void }) {
+export function WeekRow({
+  item,
+  onToggle,
+  onOpenDetail,
+}: {
+  item: WeekItem;
+  onToggle: (taskId: number) => void;
+  onOpenDetail: (taskId: number) => void;
+}) {
+  const clickable = item.source === "taska" && item.taskId !== undefined;
   return (
-    <div className={`week-row${item.done ? " done" : ""}`}>
+    <div
+      className={`week-row${item.done ? " done" : ""}`}
+      style={clickable ? { cursor: "pointer" } : undefined}
+      onClick={clickable ? () => onOpenDetail(item.taskId as number) : undefined}
+    >
       {item.source === "gcal" ? (
         <span className="source-dot gcal" />
       ) : (
-        <button className="checkbox" aria-label="Позначити виконаним" onClick={() => onToggle(item.taskId as number)}>
+        <button
+          className="checkbox"
+          aria-label="Позначити виконаним"
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggle(item.taskId as number);
+          }}
+        >
           {item.done && <Check size={10} />}
         </button>
       )}
@@ -32,10 +52,12 @@ export function WeekList({
   tasks,
   events,
   onToggle,
+  onOpenDetail,
 }: {
   tasks: Task[];
   events: CalendarEvent[];
   onToggle: (taskId: number) => void;
+  onOpenDetail: (taskId: number) => void;
 }) {
   const start = startOfWeek(new Date());
   const syncedEventIds = new Set(tasks.map((t) => t.google_event_id).filter((id): id is string => id !== null));
@@ -76,7 +98,7 @@ export function WeekList({
             </div>
             {dayItems.length === 0 && <div className="week-empty">Немає задач</div>}
             {dayItems.map((item, i) => (
-              <WeekRow key={`${item.source}-${item.taskId ?? i}`} item={item} onToggle={onToggle} />
+              <WeekRow key={`${item.source}-${item.taskId ?? i}`} item={item} onToggle={onToggle} onOpenDetail={onOpenDetail} />
             ))}
           </div>
         );
