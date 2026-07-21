@@ -388,10 +388,6 @@ export default function CalendarPage() {
           <WeekTimeline
             weekStart={weekGridStart}
             timedItemsByDay={weekTimedItemsByDay}
-            onToggle={(taskId) => {
-              const task = weekTasks.find((t) => t.id === taskId);
-              if (task) toggleDone(task);
-            }}
             onReschedule={(taskId, newDate, newTop) => {
               const task = weekTasks.find((t) => t.id === taskId);
               if (task) rescheduleTaskTo(task, newDate, newTop);

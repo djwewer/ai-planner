@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Check } from "lucide-react";
 import { computeLayout, PX_PER_HOUR, START_HOUR, snapTop } from "@/lib/timeline-layout";
 import { isSameDay } from "@/lib/date";
 
@@ -21,10 +20,6 @@ export type WeekTimelineItem = {
   done?: boolean;
 };
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
-}
-
 function formatTopAsTime(top: number): string {
   const totalMinutes = Math.max(0, Math.min(24 * 60 - 1, Math.round((top / PX_PER_HOUR) * 60)));
   const h = Math.floor(totalMinutes / 60);
@@ -40,13 +35,11 @@ function shortWeekday(d: Date): string {
 export function WeekTimeline({
   weekStart,
   timedItemsByDay,
-  onToggle,
   onReschedule,
   onOpenDetail,
 }: {
   weekStart: Date;
   timedItemsByDay: WeekTimelineItem[][];
-  onToggle: (taskId: number) => void;
   onReschedule: (taskId: number, newDate: Date, newTop: number) => void;
   onOpenDetail: (taskId: number) => void;
 }) {
@@ -220,17 +213,6 @@ export function WeekTimeline({
                         : undefined
                     }
                   >
-                    {item.source === "tenoa" && item.taskId !== undefined && (
-                      <button
-                        className={`checkbox${item.done ? " done" : ""}`}
-                        aria-label="Позначити виконаним"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={() => onToggle(item.taskId as number)}
-                      >
-                        {item.done && <Check size={10} />}
-                      </button>
-                    )}
-                    <span className="ev-time">{formatTime(item.time)}</span>
                     <span className="ev-title">{item.title}</span>
                   </div>
                 );

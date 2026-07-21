@@ -114,6 +114,7 @@ button { font-family: var(--font-ui); }
 .week-grid-body { position: relative; padding: 4px 20px 24px; }
 .week-grid-columns { position: absolute; left: 64px; right: 20px; top: 0; display: flex; }
 .week-grid-column { flex: 1; position: relative; border-left: 1px solid var(--border); }
+.week-grid-column .ev-title { font-size: 11px; }
 .week-grid-now-line { position: absolute; left: 64px; right: 20px; height: 2px; background: var(--brand); z-index: 5; pointer-events: none; }
 .week-grid-now-line::before { content: ""; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--brand); }
 
