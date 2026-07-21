@@ -6,16 +6,10 @@ import { api, ApiError } from "@/lib/api";
 import { Task } from "@/lib/types";
 import { toDateParam, isSameDay, capitalize } from "@/lib/date";
 import { DateStrip } from "@/components/date-strip/DateStrip";
+import { PRIORITY_LABELS } from "@/lib/priority";
 
 type PriorityFilter = "all" | 1 | 2 | 3 | 4;
 type SortMode = "time" | "priority";
-
-const PRIORITY_LABELS: Record<number, string> = {
-  1: "Терміново",
-  2: "Високий",
-  3: "Середній",
-  4: "Низький",
-};
 
 function formatFullDate(d: Date): string {
   return capitalize(d.toLocaleDateString("uk-UA", { weekday: "long", day: "numeric", month: "long" }));
