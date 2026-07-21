@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
-import { useAuth } from "@/lib/auth-context";
 
 const CONFIRM_WORD = "ВИДАЛИТИ";
 
@@ -18,16 +16,19 @@ export function DeleteAccountSheet({
   const [removeGoogleEvents, setRemoveGoogleEvents] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { logout } = useAuth();
-  const router = useRouter();
 
   async function handleDelete() {
     setError(null);
     setDeleting(true);
     try {
       await api.delete("/auth/me", { remove_google_events: removeGoogleEvents });
-      logout();
-      router.push("/login?deleted=1");
+      localStorage.removeItem("token");
+      // A hard navigation (not router.push) is deliberate here: logout() and the
+      // (app) layout's own auth-guard effect each separately redirect to a bare
+      // "/login" once the user's cleared, racing the client-side router against
+      // this "?deleted=1" URL and dropping the query param. A full page load
+      // sidesteps that race and guarantees a clean, fully logged-out app state.
+      window.location.href = "/login?deleted=1";
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Не вдалося видалити акаунт");
       setDeleting(false);
@@ -43,7 +44,7 @@ export function DeleteAccountSheet({
       </div>
       <div className="flow-body" style={{ gap: 16 }}>
         <p style={{ fontSize: 14, lineHeight: 1.5 }}>
-          Це незворотна дія. Усі ваші задачи та дані буде видалено назавжди.
+          Це незворотна дія. Усі ваші задачі та дані буде видалено назавжди.
         </p>
         {googleCalendarConnected && (
           <label style={{ display: "flex", alignItems: "flex-start", gap: 10, fontSize: 14 }}>
