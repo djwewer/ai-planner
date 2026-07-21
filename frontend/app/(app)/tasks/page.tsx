@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ListChecks, Trash2 } from "lucide-react";
+import { Check, ListChecks, Trash2 } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { Task } from "@/lib/types";
 import { toDateParam, isSameDay, capitalize } from "@/lib/date";
@@ -78,6 +78,16 @@ export default function TasksPage() {
     }
   }
 
+  async function handleMarkDone(task: Task) {
+    setError(null);
+    try {
+      await api.patch<Task>(`/tasks/${task.id}`, { status: "done" });
+      setTasks((current) => (current ?? []).filter((t) => t.id !== task.id));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Не вдалося позначити задачу виконаною");
+    }
+  }
+
   const filtered = (tasks ?? [])
     .filter((t) => priorityFilter === "all" || t.priority === priorityFilter)
     .sort((a, b) => {
@@ -151,6 +161,13 @@ export default function TasksPage() {
           <div className="section-block">
             {filtered.map((task) => (
               <div className="task-row" key={task.id}>
+                <button
+                  className="checkbox"
+                  aria-label="Позначити виконаним"
+                  onClick={() => handleMarkDone(task)}
+                >
+                  <Check size={12} />
+                </button>
                 <div className="task-row-main">
                   <div className="task-row-title">{task.title}</div>
                   <div className="task-row-meta">
