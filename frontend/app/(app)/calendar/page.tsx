@@ -5,6 +5,7 @@ import { CalendarCheck2, CalendarDays, Check } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { Task, CalendarEvent } from "@/lib/types";
 import { toDateParam, isSameDay, capitalize, startOfWeek, startOfMonth, endOfMonth } from "@/lib/date";
+import { useEditTask } from "@/lib/edit-task-context";
 import { DateStrip } from "@/components/date-strip/DateStrip";
 import { Timeline, TimelineItem } from "@/components/timeline/Timeline";
 import { WeekList, WeekItem, WeekRow } from "@/components/week-list/WeekList";
@@ -30,6 +31,7 @@ export default function CalendarPage() {
   const [selectedMonthDate, setSelectedMonthDate] = useState(new Date());
   const [monthTasks, setMonthTasks] = useState<Task[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const editTask = useEditTask();
 
   useEffect(() => {
     if (tab !== "day") return;
@@ -134,6 +136,24 @@ export default function CalendarPage() {
     }
   }
 
+  function handleOpenDetail(task: Task) {
+    editTask.open(
+      task,
+      (updated) => {
+        setDayTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+        setNoDateTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+        setWeekTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+        setMonthTasks((current) => current.map((t) => (t.id === updated.id ? updated : t)));
+      },
+      (deletedId) => {
+        setDayTasks((current) => current.filter((t) => t.id !== deletedId));
+        setNoDateTasks((current) => current.filter((t) => t.id !== deletedId));
+        setWeekTasks((current) => current.filter((t) => t.id !== deletedId));
+        setMonthTasks((current) => current.filter((t) => t.id !== deletedId));
+      }
+    );
+  }
+
   const syncedEventIds = new Set(dayTasks.map((t) => t.google_event_id).filter((id): id is string => id !== null));
   const unsyncedDayEvents = dayEvents.filter((e) => !syncedEventIds.has(e.id));
   const allDayTasks = dayTasks.filter((t) => !t.scheduled_at && t.deadline);
@@ -213,11 +233,14 @@ export default function CalendarPage() {
               <div className="section-block">
                 <div className="section-title">Увесь день</div>
                 {allDayTasks.map((task) => (
-                  <div className="flat-row" key={`task-${task.id}`}>
+                  <div className="flat-row" key={`task-${task.id}`} onClick={() => handleOpenDetail(task)}>
                     <button
                       className={`checkbox${task.status === "done" ? " done" : ""}`}
                       aria-label="Позначити виконаним"
-                      onClick={() => toggleDone(task)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleDone(task);
+                      }}
                     >
                       {task.status === "done" && <Check size={12} />}
                     </button>
@@ -244,17 +267,24 @@ export default function CalendarPage() {
                   const task = dayTasks.find((t) => t.id === taskId);
                   if (task) rescheduleTask(task, newTop);
                 }}
+                onOpenDetail={(taskId) => {
+                  const task = dayTasks.find((t) => t.id === taskId);
+                  if (task) handleOpenDetail(task);
+                }}
               />
             )}
             {!dayLoading && noDateTasks.length > 0 && (
               <div className="section-block">
                 <div className="section-title">Без дати <span className="count">— {noDateTasks.length}</span></div>
                 {noDateTasks.map((task) => (
-                  <div className="flat-row" key={task.id}>
+                  <div className="flat-row" key={task.id} onClick={() => handleOpenDetail(task)}>
                     <button
                       className={`checkbox${task.status === "done" ? " done" : ""}`}
                       aria-label="Позначити виконаним"
-                      onClick={() => toggleDone(task)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleDone(task);
+                      }}
                     >
                       {task.status === "done" && <Check size={12} />}
                     </button>

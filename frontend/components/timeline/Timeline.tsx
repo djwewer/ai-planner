@@ -28,11 +28,13 @@ export function Timeline({
   items,
   onToggle,
   onReschedule,
+  onOpenDetail,
   isToday,
 }: {
   items: TimelineItem[];
   onToggle: (taskId: number) => void;
   onReschedule: (taskId: number, newTop: number) => void;
+  onOpenDetail: (taskId: number) => void;
   isToday: boolean;
 }) {
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -45,7 +47,7 @@ export function Timeline({
 
   const [drag, setDrag] = useState<{ taskId: number; startTop: number; currentTop: number } | null>(null);
   const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pointerStartRef = useRef<{ pointerId: number; x: number; y: number; top: number } | null>(null);
+  const pointerStartRef = useRef<{ pointerId: number; x: number; y: number; top: number; taskId: number } | null>(null);
   const draggingRef = useRef(false);
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export function Timeline({
     if (pointerStartRef.current) return;
     const target = e.currentTarget;
     const pointerId = e.pointerId;
-    pointerStartRef.current = { pointerId, x: e.clientX, y: e.clientY, top };
+    pointerStartRef.current = { pointerId, x: e.clientX, y: e.clientY, top, taskId };
     holdTimerRef.current = setTimeout(() => {
       if (!target.isConnected) return;
       draggingRef.current = true;
@@ -114,11 +116,15 @@ export function Timeline({
   function endDrag(e: React.PointerEvent<HTMLDivElement>, commit: boolean) {
     if (!pointerStartRef.current || e.pointerId !== pointerStartRef.current.pointerId) return;
     const wasDragging = draggingRef.current;
+    const { taskId } = pointerStartRef.current;
     if (wasDragging) {
       e.currentTarget.releasePointerCapture(e.pointerId);
     }
     if (wasDragging && commit && drag && drag.currentTop !== drag.startTop) {
       onReschedule(drag.taskId, drag.currentTop);
+    }
+    if (!wasDragging && commit) {
+      onOpenDetail(taskId);
     }
     resetDragState();
   }
@@ -162,6 +168,7 @@ export function Timeline({
                   <button
                     className={`checkbox${item.done ? " done" : ""}`}
                     aria-label="Позначити виконаним"
+                    onPointerDown={(e) => e.stopPropagation()}
                     onClick={() => onToggle(item.taskId as number)}
                   >
                     {item.done && <Check size={12} />}
