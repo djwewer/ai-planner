@@ -6,6 +6,7 @@ import { api, ApiError } from "@/lib/api";
 import { Task, CalendarEvent } from "@/lib/types";
 import { toDateParam, isSameDay, capitalize, startOfWeek, startOfMonth, endOfMonth } from "@/lib/date";
 import { useEditTask } from "@/lib/edit-task-context";
+import { useEventDetail } from "@/lib/event-detail-context";
 import { DateStrip } from "@/components/date-strip/DateStrip";
 import { Timeline, TimelineItem } from "@/components/timeline/Timeline";
 import { WeekItem, WeekRow } from "@/components/week-list/WeekList";
@@ -31,8 +32,10 @@ export default function CalendarPage() {
   const [monthCursor, setMonthCursor] = useState(() => startOfMonth(new Date()));
   const [selectedMonthDate, setSelectedMonthDate] = useState(new Date());
   const [monthTasks, setMonthTasks] = useState<Task[]>([]);
+  const [monthEvents, setMonthEvents] = useState<CalendarEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const editTask = useEditTask();
+  const eventDetail = useEventDetail();
 
   useEffect(() => {
     if (tab !== "day") return;
@@ -98,9 +101,17 @@ export default function CalendarPage() {
     if (tab !== "month") return;
     const start = startOfMonth(monthCursor);
     const end = endOfMonth(monthCursor);
-    api
-      .get<Task[]>(`/tasks/calendar?start=${toDateParam(start)}&end=${toDateParam(end)}`)
-      .then(setMonthTasks)
+    Promise.all([
+      api.get<Task[]>(`/tasks/calendar?start=${toDateParam(start)}&end=${toDateParam(end)}`),
+      api
+        .get<{ events: CalendarEvent[] }>(`/calendar/events?start=${start.toISOString()}&end=${end.toISOString()}`)
+        .then((d) => d.events)
+        .catch(() => [] as CalendarEvent[]),
+    ])
+      .then(([t, e]) => {
+        setMonthTasks(t);
+        setMonthEvents(e);
+      })
       .catch((err) => console.error("Failed to load month tasks", err));
   }, [tab, monthCursor]);
 
@@ -163,6 +174,10 @@ export default function CalendarPage() {
     );
   }
 
+  function handleOpenEvent(event: CalendarEvent) {
+    eventDetail.open(event);
+  }
+
   const syncedEventIds = new Set(dayTasks.map((t) => t.google_event_id).filter((id): id is string => id !== null));
   const unsyncedDayEvents = dayEvents.filter((e) => !syncedEventIds.has(e.id));
   const allDayTasks = dayTasks.filter((t) => !t.scheduled_at && t.deadline);
@@ -179,7 +194,7 @@ export default function CalendarPage() {
       })),
     ...unsyncedDayEvents
       .filter((e) => !e.all_day)
-      .map((e) => ({ time: e.start, title: e.title, source: "gcal" as const })),
+      .map((e) => ({ time: e.start, title: e.title, source: "gcal" as const, eventId: e.id })),
   ].sort((a, b) => (a.time < b.time ? -1 : 1));
 
   const weekGridStart = startOfWeek(new Date());
@@ -204,7 +219,7 @@ export default function CalendarPage() {
         })),
       ...weekUnsyncedEvents
         .filter((e) => !e.all_day && new Date(e.start).toDateString() === dayKey)
-        .map((e) => ({ time: e.start, title: e.title, source: "gcal" as const })),
+        .map((e) => ({ time: e.start, title: e.title, source: "gcal" as const, eventId: e.id })),
     ];
   });
   const weekAllDayItemsByDay: WeekTimelineItem[][] = weekGridDays.map((d) => {
@@ -222,7 +237,7 @@ export default function CalendarPage() {
         })),
       ...weekUnsyncedEvents
         .filter((e) => e.all_day && new Date(e.start).toDateString() === dayKey)
-        .map((e) => ({ time: e.start, title: e.title, source: "gcal" as const })),
+        .map((e) => ({ time: e.start, title: e.title, source: "gcal" as const, eventId: e.id })),
     ];
   });
 
@@ -235,18 +250,30 @@ export default function CalendarPage() {
       .filter((d): d is string => !!d)
   );
 
-  const monthDayItems: WeekItem[] = monthTasks
-    .filter((t) =>
-      t.scheduled_at ? isSameDay(new Date(t.scheduled_at), selectedMonthDate) : t.deadline === toDateParam(selectedMonthDate)
-    )
-    .map((t) => ({
-      time: t.scheduled_at ? t.scheduled_at.slice(11, 16) : null,
-      title: t.title,
-      source: "tenoa" as const,
-      taskId: t.id,
-      done: t.status === "done",
-    }))
-    .sort((a, b) => (a.time ?? "99:99").localeCompare(b.time ?? "99:99"));
+  const monthSyncedEventIds = new Set(monthTasks.map((t) => t.google_event_id).filter((id): id is string => id !== null));
+  const monthUnsyncedEvents = monthEvents.filter((e) => !monthSyncedEventIds.has(e.id));
+
+  const monthDayItems: WeekItem[] = [
+    ...monthTasks
+      .filter((t) =>
+        t.scheduled_at ? isSameDay(new Date(t.scheduled_at), selectedMonthDate) : t.deadline === toDateParam(selectedMonthDate)
+      )
+      .map((t) => ({
+        time: t.scheduled_at ? t.scheduled_at.slice(11, 16) : null,
+        title: t.title,
+        source: "tenoa" as const,
+        taskId: t.id,
+        done: t.status === "done",
+      })),
+    ...monthUnsyncedEvents
+      .filter((e) => isSameDay(new Date(e.start), selectedMonthDate))
+      .map((e) => ({
+        time: e.all_day ? null : e.start.slice(11, 16),
+        title: e.title,
+        source: "gcal" as const,
+        eventId: e.id,
+      })),
+  ].sort((a, b) => (a.time ?? "99:99").localeCompare(b.time ?? "99:99"));
 
   return (
     <>
@@ -288,9 +315,15 @@ export default function CalendarPage() {
                       <div
                         key={`${item.source}-${item.taskId ?? j}`}
                         className={`week-grid-allday-chip${item.source === "gcal" ? " gcal" : ""}`}
-                        onClick={
-                          item.taskId !== undefined ? () => handleOpenDetail(weekTasks.find((t) => t.id === item.taskId) as Task) : undefined
-                        }
+                        onClick={() => {
+                          if (item.taskId !== undefined) {
+                            const task = weekTasks.find((t) => t.id === item.taskId);
+                            if (task) handleOpenDetail(task);
+                          } else if (item.eventId !== undefined) {
+                            const event = weekEvents.find((e) => e.id === item.eventId);
+                            if (event) handleOpenEvent(event);
+                          }
+                        }}
                       >
                         {item.title}
                       </div>
@@ -337,7 +370,12 @@ export default function CalendarPage() {
                   </div>
                 ))}
                 {allDayEvents.map((event) => (
-                  <div className="flat-row" key={`event-${event.id}`}>
+                  <div
+                    className="flat-row"
+                    key={`event-${event.id}`}
+                    onClick={() => handleOpenEvent(event)}
+                    style={{ cursor: "pointer" }}
+                  >
                     <div className="flat-icon gcal"><CalendarDays size={14} /></div>
                     <div className="flat-title">{event.title}</div>
                   </div>
@@ -359,6 +397,10 @@ export default function CalendarPage() {
                 onOpenDetail={(taskId) => {
                   const task = dayTasks.find((t) => t.id === taskId);
                   if (task) handleOpenDetail(task);
+                }}
+                onOpenEvent={(eventId) => {
+                  const event = dayEvents.find((e) => e.id === eventId);
+                  if (event) handleOpenEvent(event);
                 }}
               />
             )}
@@ -396,6 +438,10 @@ export default function CalendarPage() {
               const task = weekTasks.find((t) => t.id === taskId);
               if (task) handleOpenDetail(task);
             }}
+            onOpenEvent={(eventId) => {
+              const event = weekEvents.find((e) => e.id === eventId);
+              if (event) handleOpenEvent(event);
+            }}
           />
         )}
         {tab === "month" && (
@@ -429,6 +475,10 @@ export default function CalendarPage() {
                     onOpenDetail={(taskId) => {
                       const task = monthTasks.find((t) => t.id === taskId);
                       if (task) handleOpenDetail(task);
+                    }}
+                    onOpenEvent={(eventId) => {
+                      const event = monthEvents.find((e) => e.id === eventId);
+                      if (event) handleOpenEvent(event);
                     }}
                   />
                 ))}
