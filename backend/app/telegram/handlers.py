@@ -9,12 +9,13 @@ from app.captures.service import CaptureProcessingError, process_capture
 from app.models import Task, TelegramLinkCode, User
 from app.tasks.router import _sync_task_google
 from app.telegram import client as telegram_client
-from app.telegram.notifications import render_batch_message
+from app.telegram.notifications import format_reschedule_confirmation, render_batch_message
 
 logger = logging.getLogger(__name__)
 
 CODE_INVALID_MESSAGE = "Код недійсний або застарів, спробуйте ще раз у Налаштуваннях."
 NOT_LINKED_MESSAGE = "Спочатку підключіть акаунт: Налаштування → Telegram-бот у застосунку Taska."
+NOT_FOUND_MESSAGE = "Не вдалося знайти задачу для перенесення. Спробуйте сформулювати інакше."
 
 
 def handle_start(chat_id: int, code: str, db: Session) -> None:
@@ -53,12 +54,16 @@ def handle_capture_message(chat_id: int, raw_text: str, db: Session) -> None:
         return
 
     try:
-        tasks = process_capture(user, raw_text, source="telegram", db=db)
+        result = process_capture(user, raw_text, source="telegram", db=db)
     except CaptureProcessingError:
         telegram_client.send_message(chat_id, "Не вдалося обробити, спробуйте ще раз")
         return
 
-    if not tasks:
+    if result.kind == "rescheduled":
+        telegram_client.send_message(chat_id, format_reschedule_confirmation(result.task))
+    elif result.kind == "not_found":
+        telegram_client.send_message(chat_id, NOT_FOUND_MESSAGE)
+    elif not result.tasks:
         telegram_client.send_message(
             chat_id,
             "Taska не змогла визначити задачі в цьому повідомленні. Спробуйте сформулювати інакше.",

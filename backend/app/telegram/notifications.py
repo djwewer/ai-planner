@@ -21,6 +21,10 @@ def _format_deadline_line(task: Task) -> str:
     return "📝Задача без дедлайну"
 
 
+def format_reschedule_confirmation(task: Task) -> str:
+    return f"✅ Перенесено: «{task.title}»\n{_format_deadline_line(task)}"
+
+
 def render_batch_message(tasks: list[Task]) -> tuple[str, dict | None]:
     shown = tasks[:MAX_INLINE_TASKS]
     blocks = ["Привіт! Ось нові задачі для підтвердження:"]

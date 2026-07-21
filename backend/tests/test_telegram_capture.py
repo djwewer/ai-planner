@@ -179,3 +179,78 @@ def test_voice_message_with_empty_transcription_replies_error_without_capturing(
 
     mock_send.assert_called_once_with(666, "Не вдалося розпізнати мову, спробуйте ще раз")
     mock_process.assert_not_called()
+
+
+def test_text_message_reschedules_matching_task(client, monkeypatch, db_session):
+    import datetime
+
+    from app.ai.replan import ReplanResult
+    from app.captures import service as captures_service_module
+    from app.models import Task, User
+
+    _signup(client, email="tgreschedule@example.com")
+    user = db_session.query(User).filter(User.email == "tgreschedule@example.com").first()
+    user.telegram_chat_id = 777
+    task = Task(
+        user_id=user.id,
+        title="Стоматолог",
+        status="confirmed",
+        deadline=datetime.date(2026, 7, 22),
+        scheduled_at=datetime.datetime(2026, 7, 22, 10, 0),
+    )
+    db_session.add(task)
+    db_session.commit()
+    db_session.refresh(task)
+
+    monkeypatch.setattr(
+        captures_service_module,
+        "find_reschedule_target",
+        MagicMock(
+            return_value=ReplanResult(
+                kind="reschedule",
+                task_id=task.id,
+                new_deadline=datetime.date(2026, 7, 23),
+                new_scheduled_at=datetime.datetime(2026, 7, 23, 15, 0),
+            )
+        ),
+    )
+    mock_send = MagicMock()
+    monkeypatch.setattr(telegram_handlers.telegram_client, "send_message", mock_send)
+
+    telegram_handlers.handle_update(
+        {"message": {"chat": {"id": 777}, "text": "перенеси стоматолога на завтра о 15:00"}},
+        db_session,
+    )
+
+    mock_send.assert_called_once()
+    assert mock_send.call_args.args[0] == 777
+    assert "Перенесено" in mock_send.call_args.args[1]
+    assert "Стоматолог" in mock_send.call_args.args[1]
+    db_session.refresh(task)
+    assert task.deadline == datetime.date(2026, 7, 23)
+
+
+def test_text_message_reschedule_no_match_replies_not_found(client, monkeypatch, db_session):
+    from app.ai.replan import ReplanResult
+    from app.captures import service as captures_service_module
+    from app.models import User
+
+    monkeypatch.setattr(
+        captures_service_module,
+        "find_reschedule_target",
+        MagicMock(return_value=ReplanResult(kind="no_match")),
+    )
+    mock_send = MagicMock()
+    monkeypatch.setattr(telegram_handlers.telegram_client, "send_message", mock_send)
+
+    _signup(client, email="tgnomatch@example.com")
+    user = db_session.query(User).filter(User.email == "tgnomatch@example.com").first()
+    user.telegram_chat_id = 778
+    db_session.commit()
+
+    telegram_handlers.handle_update(
+        {"message": {"chat": {"id": 778}, "text": "перенеси зустріч з інопланетянами на четвер"}},
+        db_session,
+    )
+
+    mock_send.assert_called_once_with(778, telegram_handlers.NOT_FOUND_MESSAGE)
