@@ -14,7 +14,7 @@ export function CreateSheet() {
         <div className="sheet-row-icon"><Mic /></div>
         <div>
           <div className="sheet-row-title">Записати голосом</div>
-          <div className="sheet-row-sub">Скажіть Taska, що потрібно зробити, своїми словами.</div>
+          <div className="sheet-row-sub">Скажіть Tenoa, що потрібно зробити, своїми словами.</div>
         </div>
       </button>
       <button className="sheet-row" onClick={openText}>

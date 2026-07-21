@@ -36,7 +36,7 @@ def delete_account(user: User, remove_google_events: bool, db: Session) -> None:
         try:
             telegram_client.send_message(
                 user.telegram_chat_id,
-                "Ваш акаунт Taska видалено. Дякуємо, що користувалися сервісом!",
+                "Ваш акаунт Tenoa видалено. Дякуємо, що користувалися сервісом!",
             )
         except Exception:
             logger.exception(

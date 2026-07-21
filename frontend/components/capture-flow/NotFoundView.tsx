@@ -15,7 +15,7 @@ export function NotFoundView() {
     <div className="success-stage">
       <div className="empty-block">
         <div className="empty-icon warn"><AlertTriangle /></div>
-        <p>Taska не знайшла задачу, яку потрібно перенести. Спробуйте сформулювати інакше.</p>
+        <p>Tenoa не знайшла задачу, яку потрібно перенести. Спробуйте сформулювати інакше.</p>
       </div>
       <button className="secondary-btn" onClick={handleRetry}>Спробувати ще раз</button>
     </div>

@@ -95,8 +95,8 @@ export function VoiceFlow() {
       </div>
       {phase !== "recording" && (
         <div className="flow-body">
-          <h3 className="flow-heading">Скажіть Taska, що потрібно зробити</h3>
-          <p className="flow-sub">Taska перетворить ваш запис на чернетки задач, які можна переглянути й відредагувати.</p>
+          <h3 className="flow-heading">Скажіть Tenoa, що потрібно зробити</h3>
+          <p className="flow-sub">Tenoa перетворить ваш запис на чернетки задач, які можна переглянути й відредагувати.</p>
           {(error || !micSupported) && (
             <div className="empty-block">
               <div className="empty-icon warn"><MicOff /></div>

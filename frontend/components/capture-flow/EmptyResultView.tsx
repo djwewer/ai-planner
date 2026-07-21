@@ -15,7 +15,7 @@ export function EmptyResultView() {
     <div className="success-stage">
       <div className="empty-block">
         <div className="empty-icon warn"><AlertTriangle /></div>
-        <p>Taska не вдалося визначити задачі в цьому записі. Спробуйте ще раз або введіть текст.</p>
+        <p>Tenoa не вдалося визначити задачі в цьому записі. Спробуйте ще раз або введіть текст.</p>
       </div>
       <button className="secondary-btn" onClick={handleRetry}>Спробувати ще раз</button>
     </div>

@@ -74,7 +74,7 @@ export default function InboxPage() {
         </div>
       </div>
       {drafts !== null && count > 0 && (
-        <div className="inbox-intro">Ці задачі створив Taska. Перевірте й підтвердьте їх, перш ніж вони з&apos;являться у вашому плані.</div>
+        <div className="inbox-intro">Ці задачі створив Tenoa. Перевірте й підтвердьте їх, перш ніж вони з&apos;являться у вашому плані.</div>
       )}
       {error && <p style={{ padding: "0 20px", color: "var(--error)", fontSize: 13 }}>{error}</p>}
       <div className="scroll">
@@ -87,7 +87,7 @@ export default function InboxPage() {
         {drafts !== null && count === 0 && (
           <div className="empty-block">
             <div className="empty-icon"><InboxIcon size={40} /></div>
-            <p>Усе переглянуто. Нові задачі, створені Taska, з&apos;являться тут.</p>
+            <p>Усе переглянуто. Нові задачі, створені Tenoa, з&apos;являться тут.</p>
           </div>
         )}
         {drafts?.map((task) => {

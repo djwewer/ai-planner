@@ -25,7 +25,7 @@ export function SuccessView() {
     <div className="success-stage">
       <div className="success-icon"><Check size={30} /></div>
       <h3 className="flow-heading" style={{ margin: 0 }}>
-        Taska створив {createdCount} {pluralizeTasks(createdCount)}
+        Tenoa створив {createdCount} {pluralizeTasks(createdCount)}
       </h3>
       <p className="flow-sub" style={{ marginBottom: 8 }}>Перегляньте їх у Вхідних.</p>
       <button className="primary-btn" onClick={handleReview}>Переглянути задачі</button>

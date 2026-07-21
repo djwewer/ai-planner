@@ -98,7 +98,7 @@ def test_create_event_includes_time_zone(monkeypatch):
 
 
 def test_create_event_is_transparent(monkeypatch):
-    """A Taska task's timed calendar entry shouldn't block time the way a real
+    """A Tenoa task's timed calendar entry shouldn't block time the way a real
     meeting does -- it must be marked free/transparent, not busy."""
     mock_post = MagicMock(
         side_effect=[

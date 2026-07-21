@@ -7,7 +7,7 @@ import { startOfWeek, toDateParam, capitalize } from "@/lib/date";
 export type WeekItem = {
   time: string | null;
   title: string;
-  source: "taska" | "gcal";
+  source: "tenoa" | "gcal";
   taskId?: number;
   done?: boolean;
 };
@@ -21,7 +21,7 @@ export function WeekRow({
   onToggle: (taskId: number) => void;
   onOpenDetail: (taskId: number) => void;
 }) {
-  const clickable = item.source === "taska" && item.taskId !== undefined;
+  const clickable = item.source === "tenoa" && item.taskId !== undefined;
   return (
     <div
       className={`week-row${item.done ? " done" : ""}`}
@@ -82,7 +82,7 @@ export function WeekList({
             .map((t) => ({
               time: t.scheduled_at ? t.scheduled_at.slice(11, 16) : null,
               title: t.title,
-              source: "taska" as const,
+              source: "tenoa" as const,
               taskId: t.id,
               done: t.status === "done",
             })),

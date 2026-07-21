@@ -164,7 +164,7 @@ export default function CalendarPage() {
       .map((t) => ({
         time: t.scheduled_at as string,
         title: t.title,
-        source: "taska" as const,
+        source: "tenoa" as const,
         taskId: t.id,
         done: t.status === "done",
       })),
@@ -189,7 +189,7 @@ export default function CalendarPage() {
     .map((t) => ({
       time: t.scheduled_at ? t.scheduled_at.slice(11, 16) : null,
       title: t.title,
-      source: "taska" as const,
+      source: "tenoa" as const,
       taskId: t.id,
       done: t.status === "done",
     }))

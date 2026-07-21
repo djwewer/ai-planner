@@ -40,8 +40,8 @@ function LoginPageInner() {
   return (
     <div className="auth-screen">
       <div className="auth-brand">
-        <Image src={logo} alt="Taska" width={112} height={112} priority />
-        <h1>Taska</h1>
+        <Image src={logo} alt="Tenoa" width={112} height={112} priority />
+        <h1>Tenoa</h1>
         <p>Увійдіть, щоб побачити свої задачі</p>
       </div>
 
@@ -53,7 +53,7 @@ function LoginPageInner() {
       )}
 
       {justDeleted && (
-        <p className="auth-notice">Акаунт видалено. Дякуємо, що користувалися Taska.</p>
+        <p className="auth-notice">Акаунт видалено. Дякуємо, що користувалися Tenoa.</p>
       )}
 
       <form className="auth-form" onSubmit={handleSubmit}>

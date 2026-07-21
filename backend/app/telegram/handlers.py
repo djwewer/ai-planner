@@ -14,7 +14,7 @@ from app.telegram.notifications import format_reschedule_confirmation, render_ba
 logger = logging.getLogger(__name__)
 
 CODE_INVALID_MESSAGE = "Код недійсний або застарів, спробуйте ще раз у Налаштуваннях."
-NOT_LINKED_MESSAGE = "Спочатку підключіть акаунт: Налаштування → Telegram-бот у застосунку Taska."
+NOT_LINKED_MESSAGE = "Спочатку підключіть акаунт: Налаштування → Telegram-бот у застосунку Tenoa."
 NOT_FOUND_MESSAGE = "Не вдалося знайти задачу для перенесення. Спробуйте сформулювати інакше."
 
 
@@ -66,7 +66,7 @@ def handle_capture_message(chat_id: int, raw_text: str, db: Session) -> None:
     elif not result.tasks:
         telegram_client.send_message(
             chat_id,
-            "Taska не змогла визначити задачі в цьому повідомленні. Спробуйте сформулювати інакше.",
+            "Tenoa не змогла визначити задачі в цьому повідомленні. Спробуйте сформулювати інакше.",
         )
 
 

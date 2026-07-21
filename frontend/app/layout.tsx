@@ -6,7 +6,7 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin", "cyrillic"], variable: "--font-inter" });
 
 export const metadata = {
-  title: "Taska",
+  title: "Tenoa",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

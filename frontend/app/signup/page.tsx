@@ -37,8 +37,8 @@ export default function SignupPage() {
   return (
     <div className="auth-screen">
       <div className="auth-brand">
-        <Image src={logo} alt="Taska" width={112} height={112} priority />
-        <h1>Taska</h1>
+        <Image src={logo} alt="Tenoa" width={112} height={112} priority />
+        <h1>Tenoa</h1>
         <p>Створіть акаунт, щоб почати планувати</p>
       </div>
 

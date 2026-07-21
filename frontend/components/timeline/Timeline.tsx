@@ -12,7 +12,7 @@ const MOVE_CANCEL_THRESHOLD = 8;
 export type TimelineItem = {
   time: string;
   title: string;
-  source: "taska" | "gcal";
+  source: "tenoa" | "gcal";
   taskId?: number;
   done?: boolean;
 };
@@ -152,7 +152,7 @@ export function Timeline({
             const top = isDragging && drag ? drag.currentTop : item.top;
             const d = new Date(item.time);
             const timeLabel = isDragging ? formatTopAsTime(top) : d.toLocaleTimeString("uk-UA", { hour: "2-digit", minute: "2-digit" });
-            const draggable = item.source === "taska" && item.taskId !== undefined;
+            const draggable = item.source === "tenoa" && item.taskId !== undefined;
             return (
               <div
                 key={`${item.source}-${item.taskId ?? i}`}
@@ -164,7 +164,7 @@ export function Timeline({
                 onPointerCancel={draggable ? (e) => endDrag(e, false) : undefined}
                 onLostPointerCapture={draggable ? handleLostPointerCapture : undefined}
               >
-                {item.source === "taska" && item.taskId !== undefined && (
+                {item.source === "tenoa" && item.taskId !== undefined && (
                   <button
                     className={`checkbox${item.done ? " done" : ""}`}
                     aria-label="Позначити виконаним"
