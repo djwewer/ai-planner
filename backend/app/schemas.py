@@ -64,3 +64,7 @@ class CaptureResponse(BaseModel):
     kind: str
     tasks: list[TaskOut] = []
     task: Optional[TaskOut] = None
+
+
+class DeleteAccountRequest(BaseModel):
+    remove_google_events: bool = False

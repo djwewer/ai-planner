@@ -3,10 +3,11 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.auth.google_oauth import oauth
+from app.auth.service import delete_account
 from app.config import settings
 from app.database import get_db
 from app.models import User
-from app.schemas import Token, UserCreate, UserLogin, UserOut
+from app.schemas import DeleteAccountRequest, Token, UserCreate, UserLogin, UserOut
 from app.security import create_access_token, get_current_user, hash_password, verify_password
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -84,3 +85,12 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
 
     access_token = create_access_token(user.id)
     return RedirectResponse(url=f"{settings.frontend_url}/auth/callback?token={access_token}")
+
+
+@router.delete("/me", status_code=status.HTTP_204_NO_CONTENT)
+def delete_my_account(
+    payload: DeleteAccountRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    delete_account(current_user, payload.remove_google_events, db)
