@@ -112,14 +112,15 @@ export function WeekTimeline({
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, taskId: number, dayIndex: number, top: number) {
     if (pointerStartRef.current) return;
     pointerStartRef.current = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, top, taskId, dayIndex };
-    // Captured on the persistent grid container, not the card itself -- the card
-    // unmounts the instant a drag starts (filtered out of its day's static list),
-    // which would silently release capture set on it and strand the gesture the
-    // moment the pointer leaves the grid's own DOM bounds (e.g. over the sticky
-    // header above it).
-    bodyRef.current?.setPointerCapture(e.pointerId);
     holdTimerRef.current = setTimeout(() => {
       draggingRef.current = true;
+      // Captured on the persistent grid container, not the card itself -- the card
+      // unmounts the instant a drag starts (filtered out of its day's static list),
+      // which would silently release capture set on it and strand the gesture the
+      // moment the pointer leaves the grid's own DOM bounds (e.g. over the sticky
+      // header above it). Captured here (once a drag is confirmed), matching the
+      // same timing the single-day Timeline component already uses successfully.
+      bodyRef.current?.setPointerCapture(e.pointerId);
       const snapped = snapTop(top);
       setDrag({ taskId, originDayIndex: dayIndex, startTop: snapped, currentTop: snapped, currentDayIndex: dayIndex });
     }, HOLD_MS);
