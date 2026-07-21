@@ -32,6 +32,12 @@ async def connect(request: Request, current_user: User = Depends(get_current_use
 async def callback(request: Request, db: Session = Depends(get_db)):
     user_id = request.session.pop("calendar_connect_user_id", None)
     if user_id is None:
+        logger.warning(
+            "calendar OAuth callback: no calendar_connect_user_id in session "
+            "(session cookie likely not sent back on the redirect from Google) — "
+            "session keys present: %s",
+            list(request.session.keys()),
+        )
         return RedirectResponse(
             url=f"{settings.frontend_url}/settings?error=calendar_connect_failed"
         )
@@ -46,6 +52,13 @@ async def callback(request: Request, db: Session = Depends(get_db)):
 
     refresh_token = token.get("refresh_token")
     if refresh_token is None:
+        logger.warning(
+            "calendar OAuth callback: Google returned no refresh_token for user_id=%s "
+            "(token response keys: %s) — this usually means Google has already granted "
+            "this client offline access for this account and did not reissue one",
+            user_id,
+            list(token.keys()),
+        )
         return RedirectResponse(
             url=f"{settings.frontend_url}/settings?error=calendar_connect_failed"
         )
