@@ -11,6 +11,8 @@
   --warning: #C78322;
   --error: #C94A55;
   --gcal: #4285F4;
+  --task-pastel: #8B7CF6;
+  --event-pastel: #2DD4BF;
 
   --font-ui: var(--font-inter), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
 
@@ -85,10 +87,11 @@ button { font-family: var(--font-ui); }
 .hour-row .hour-label { width: 44px; font-size: 12px; color: var(--text-secondary); transform: translateY(-6px); flex-shrink: 0; }
 .hour-row .hour-line { flex: 1; border-top: 1px solid var(--border); margin-top: -1px; }
 .event-layer { position: absolute; left: 64px; right: 0; top: 0; }
-.event-card { position: absolute; background: var(--surface); border-radius: 8px; border-left: 3px solid var(--brand); padding: 0 8px; box-sizing: border-box; box-shadow: 0 1px 4px rgba(27,27,32,0.10); display: flex; flex-direction: row; align-items: center; gap: 6px; height: 28px; touch-action: none; }
-.event-card.gcal { border-left-color: var(--gcal); }
-.event-card .ev-time { font-size: 11px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0; }
-.event-card .ev-title { font-size: 12.5px; font-weight: 600; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.event-card { position: absolute; background: color-mix(in srgb, var(--task-pastel) 32%, white); border-radius: 8px; padding: 0 8px; box-sizing: border-box; box-shadow: 0 1px 4px rgba(27,27,32,0.10); display: flex; flex-direction: row; align-items: center; gap: 6px; height: 28px; touch-action: none; }
+.event-card .ev-time { font-size: 11px; font-weight: 600; color: color-mix(in srgb, var(--task-pastel) 75%, black); flex-shrink: 0; }
+.event-card .ev-title { font-size: 12.5px; font-weight: 600; line-height: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; color: color-mix(in srgb, var(--task-pastel) 75%, black); }
+.event-card.gcal { background: color-mix(in srgb, var(--event-pastel) 32%, white); }
+.event-card.gcal .ev-time, .event-card.gcal .ev-title { color: color-mix(in srgb, var(--event-pastel) 75%, black); }
 .event-card.done .ev-title { text-decoration: line-through; color: var(--text-secondary); font-weight: 500; }
 .event-card.dragging { box-shadow: 0 6px 16px rgba(27,27,32,0.20); z-index: 20; opacity: 0.95; }
 .drag-time-label { position: absolute; right: 8px; top: -20px; font-size: 11px; font-weight: 700; color: #fff; background: var(--brand); padding: 2px 8px; border-radius: var(--radius-full); white-space: nowrap; }
