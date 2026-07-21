@@ -26,6 +26,7 @@ class Capture(Base):
     id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     raw_text = Column(String, nullable=False)
+    source = Column(String, nullable=False, default="web")
     status = Column(String, nullable=False, default="processing")
     created_at = Column(DateTime, default=datetime.datetime.utcnow, nullable=False)
 
