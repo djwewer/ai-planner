@@ -11,6 +11,8 @@ import { CaptureFlowProvider } from "@/lib/capture-flow-context";
 import { CaptureFlow } from "@/components/capture-flow/CaptureFlow";
 import { EditTaskProvider } from "@/lib/edit-task-context";
 import { EditTaskSheet } from "@/components/edit-task-sheet/EditTaskSheet";
+import { EventDetailProvider } from "@/lib/event-detail-context";
+import { EventDetailSheet } from "@/components/event-detail-sheet/EventDetailSheet";
 
 export default function AppLayout({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
@@ -38,12 +40,15 @@ export default function AppLayout({ children }: { children: ReactNode }) {
     <SnackbarProvider>
       <CaptureFlowProvider>
         <EditTaskProvider>
-          <div className="app-shell">
-            <div className="screen">{children}</div>
-            <BottomNav inboxCount={inboxCount} />
-            <CaptureFlow />
-            <EditTaskSheet />
-          </div>
+          <EventDetailProvider>
+            <div className="app-shell">
+              <div className="screen">{children}</div>
+              <BottomNav inboxCount={inboxCount} />
+              <CaptureFlow />
+              <EditTaskSheet />
+              <EventDetailSheet />
+            </div>
+          </EventDetailProvider>
         </EditTaskProvider>
       </CaptureFlowProvider>
     </SnackbarProvider>

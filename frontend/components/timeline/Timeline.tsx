@@ -14,6 +14,7 @@ export type TimelineItem = {
   title: string;
   source: "tenoa" | "gcal";
   taskId?: number;
+  eventId?: string;
   done?: boolean;
 };
 
@@ -29,12 +30,14 @@ export function Timeline({
   onToggle,
   onReschedule,
   onOpenDetail,
+  onOpenEvent,
   isToday,
 }: {
   items: TimelineItem[];
   onToggle: (taskId: number) => void;
   onReschedule: (taskId: number, newTop: number) => void;
   onOpenDetail: (taskId: number) => void;
+  onOpenEvent: (eventId: string) => void;
   isToday: boolean;
 }) {
   const anchorRef = useRef<HTMLDivElement>(null);
@@ -163,6 +166,11 @@ export function Timeline({
                 onPointerUp={draggable ? (e) => endDrag(e, true) : undefined}
                 onPointerCancel={draggable ? (e) => endDrag(e, false) : undefined}
                 onLostPointerCapture={draggable ? handleLostPointerCapture : undefined}
+                onClick={
+                  item.source === "gcal" && item.eventId !== undefined
+                    ? () => onOpenEvent(item.eventId as string)
+                    : undefined
+                }
               >
                 {item.source === "tenoa" && item.taskId !== undefined && (
                   <button

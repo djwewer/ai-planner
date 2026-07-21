@@ -17,6 +17,7 @@ export type WeekTimelineItem = {
   title: string;
   source: "tenoa" | "gcal";
   taskId?: number;
+  eventId?: string;
   done?: boolean;
 };
 
@@ -37,11 +38,13 @@ export function WeekTimeline({
   timedItemsByDay,
   onReschedule,
   onOpenDetail,
+  onOpenEvent,
 }: {
   weekStart: Date;
   timedItemsByDay: WeekTimelineItem[][];
   onReschedule: (taskId: number, newDate: Date, newTop: number) => void;
   onOpenDetail: (taskId: number) => void;
+  onOpenEvent: (eventId: string) => void;
 }) {
   const days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date(weekStart);
@@ -210,6 +213,11 @@ export function WeekTimeline({
                     onPointerDown={
                       draggable
                         ? (e) => handlePointerDown(e, item.taskId as number, dayIndex, item.top)
+                        : undefined
+                    }
+                    onClick={
+                      item.source === "gcal" && item.eventId !== undefined
+                        ? () => onOpenEvent(item.eventId as string)
                         : undefined
                     }
                   >
