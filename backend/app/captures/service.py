@@ -65,7 +65,17 @@ def process_capture(user: User, raw_text: str, source: str, db: Session) -> Capt
                 replan.task_id,
                 capture.id,
             )
-            capture.status = "no_match"
+            capture.status = "invalid_match"
+            db.commit()
+            return CaptureResult(kind="not_found")
+
+        if replan.new_deadline is None and replan.new_scheduled_at is None:
+            logger.warning(
+                "replan matched task_id=%s with no new date for capture_id=%s -- refusing to clear its schedule",
+                replan.task_id,
+                capture.id,
+            )
+            capture.status = "invalid_match"
             db.commit()
             return CaptureResult(kind="not_found")
 

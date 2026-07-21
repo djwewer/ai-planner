@@ -197,3 +197,96 @@ def test_capture_no_matching_task_returns_not_found(client, monkeypatch, db_sess
 
     assert response.status_code == 201
     assert response.json() == {"kind": "not_found", "tasks": [], "task": None}
+
+
+def test_capture_reschedule_rejects_task_owned_by_another_user(client, monkeypatch, db_session):
+    import datetime
+
+    from app.ai.replan import ReplanResult
+    from app.captures import service as captures_service_module
+    from app.models import Task, User
+
+    _signup_and_get_token(client, email="victim@example.com")
+    victim = db_session.query(User).filter(User.email == "victim@example.com").first()
+    victim_task = Task(
+        user_id=victim.id,
+        title="Приватна задача жертви",
+        status="confirmed",
+        deadline=datetime.date(2026, 7, 22),
+        scheduled_at=datetime.datetime(2026, 7, 22, 10, 0),
+    )
+    db_session.add(victim_task)
+    db_session.commit()
+    db_session.refresh(victim_task)
+
+    attacker_token = _signup_and_get_token(client, email="attacker@example.com")
+
+    monkeypatch.setattr(
+        captures_service_module,
+        "find_reschedule_target",
+        MagicMock(
+            return_value=ReplanResult(
+                kind="reschedule",
+                task_id=victim_task.id,
+                new_deadline=datetime.date(2026, 7, 23),
+                new_scheduled_at=datetime.datetime(2026, 7, 23, 15, 0),
+            )
+        ),
+    )
+
+    response = client.post(
+        "/captures",
+        json={"raw_text": "перенеси приватну задачу на завтра о 15:00"},
+        headers={"Authorization": f"Bearer {attacker_token}"},
+    )
+
+    assert response.status_code == 201
+    assert response.json() == {"kind": "not_found", "tasks": [], "task": None}
+
+    db_session.refresh(victim_task)
+    assert victim_task.deadline == datetime.date(2026, 7, 22)
+    assert victim_task.scheduled_at == datetime.datetime(2026, 7, 22, 10, 0)
+
+
+def test_capture_reschedule_with_no_new_date_does_not_clear_schedule(client, monkeypatch, db_session):
+    import datetime
+
+    from app.ai.replan import ReplanResult
+    from app.captures import service as captures_service_module
+    from app.models import Task, User
+
+    token = _signup_and_get_token(client, email="nulldate@example.com")
+    user = db_session.query(User).filter(User.email == "nulldate@example.com").first()
+    task = Task(
+        user_id=user.id,
+        title="Стоматолог",
+        status="confirmed",
+        deadline=datetime.date(2026, 7, 22),
+        scheduled_at=datetime.datetime(2026, 7, 22, 10, 0),
+    )
+    db_session.add(task)
+    db_session.commit()
+    db_session.refresh(task)
+
+    monkeypatch.setattr(
+        captures_service_module,
+        "find_reschedule_target",
+        MagicMock(
+            return_value=ReplanResult(
+                kind="reschedule", task_id=task.id, new_deadline=None, new_scheduled_at=None
+            )
+        ),
+    )
+
+    response = client.post(
+        "/captures",
+        json={"raw_text": "перенеси стоматолога"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 201
+    assert response.json() == {"kind": "not_found", "tasks": [], "task": None}
+
+    db_session.refresh(task)
+    assert task.deadline == datetime.date(2026, 7, 22)
+    assert task.scheduled_at == datetime.datetime(2026, 7, 22, 10, 0)
