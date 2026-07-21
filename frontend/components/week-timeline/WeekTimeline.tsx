@@ -63,6 +63,7 @@ export function WeekTimeline({
   const scrollAnchorHour = Math.floor(Math.max(START_HOUR, nowHour - 1));
 
   const anchorRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const columnsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     anchorRef.current?.scrollIntoView({ block: "start" });
@@ -91,6 +92,9 @@ export function WeekTimeline({
       clearTimeout(holdTimerRef.current);
       holdTimerRef.current = null;
     }
+    if (pointerStartRef.current && bodyRef.current?.hasPointerCapture(pointerStartRef.current.pointerId)) {
+      bodyRef.current.releasePointerCapture(pointerStartRef.current.pointerId);
+    }
     pointerStartRef.current = null;
     draggingRef.current = false;
     setDrag(null);
@@ -108,6 +112,12 @@ export function WeekTimeline({
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, taskId: number, dayIndex: number, top: number) {
     if (pointerStartRef.current) return;
     pointerStartRef.current = { pointerId: e.pointerId, x: e.clientX, y: e.clientY, top, taskId, dayIndex };
+    // Captured on the persistent grid container, not the card itself -- the card
+    // unmounts the instant a drag starts (filtered out of its day's static list),
+    // which would silently release capture set on it and strand the gesture the
+    // moment the pointer leaves the grid's own DOM bounds (e.g. over the sticky
+    // header above it).
+    bodyRef.current?.setPointerCapture(e.pointerId);
     holdTimerRef.current = setTimeout(() => {
       draggingRef.current = true;
       const snapped = snapTop(top);
@@ -164,12 +174,22 @@ export function WeekTimeline({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [timedItemsByDay]);
 
+  // Defensive cleanup: if capture is lost outside our own release call, make sure
+  // we don't leave the gesture permanently armed (blocking every future drag via
+  // the handlePointerDown guard above).
+  function handleLostPointerCapture(e: React.PointerEvent<HTMLDivElement>) {
+    if (!pointerStartRef.current || e.pointerId !== pointerStartRef.current.pointerId) return;
+    resetDragState();
+  }
+
   return (
     <div
       className="week-grid-body"
+      ref={bodyRef}
       onPointerMove={handlePointerMove}
       onPointerUp={(e) => endDrag(e, true)}
       onPointerCancel={(e) => endDrag(e, false)}
+      onLostPointerCapture={handleLostPointerCapture}
     >
       {hours.map((h) => (
         <div className="hour-row" key={h} ref={h === scrollAnchorHour ? anchorRef : undefined}>
