@@ -8,6 +8,8 @@ import { ProcessingView } from "@/components/capture-flow/ProcessingView";
 import { SuccessView } from "@/components/capture-flow/SuccessView";
 import { EmptyResultView } from "@/components/capture-flow/EmptyResultView";
 import { ErrorResultView } from "@/components/capture-flow/ErrorResultView";
+import { RescheduledView } from "@/components/capture-flow/RescheduledView";
+import { NotFoundView } from "@/components/capture-flow/NotFoundView";
 
 export function CaptureFlow() {
   const { stage, close } = useCaptureFlow();
@@ -32,6 +34,12 @@ export function CaptureFlow() {
       )}
       {stage === "error" && (
         <div className="flow"><div className="flow-body"><ErrorResultView /></div></div>
+      )}
+      {stage === "rescheduled" && (
+        <div className="flow"><div className="flow-body"><RescheduledView /></div></div>
+      )}
+      {stage === "not_found" && (
+        <div className="flow"><div className="flow-body"><NotFoundView /></div></div>
       )}
     </>
   );
