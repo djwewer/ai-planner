@@ -16,6 +16,7 @@ function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const oauthError = searchParams.get("error");
+  const justDeleted = searchParams.get("deleted") === "1";
 
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
@@ -49,6 +50,10 @@ function LoginPageInner() {
           Електронна пошта вашого облікового запису Google не підтверджена, тому
           автоматичне прив&apos;язування неможливе. Увійдіть за допомогою email та пароля.
         </p>
+      )}
+
+      {justDeleted && (
+        <p className="auth-notice">Акаунт видалено. Дякуємо, що користувалися Taska.</p>
       )}
 
       <form className="auth-form" onSubmit={handleSubmit}>

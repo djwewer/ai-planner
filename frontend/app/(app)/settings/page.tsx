@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { Archive, CalendarDays, Check, ChevronRight, Send } from "lucide-react";
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/lib/auth-context";
+import { DeleteAccountSheet } from "@/components/delete-account-sheet/DeleteAccountSheet";
 
 type Me = {
   id: number;
@@ -21,6 +22,7 @@ function SettingsPageInner() {
   const [error, setError] = useState<string | null>(null);
   const [connectingCalendar, setConnectingCalendar] = useState(false);
   const [connectingTelegram, setConnectingTelegram] = useState(false);
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
 
   useEffect(() => {
     api.get<Me>("/auth/me").then(setMe);
@@ -133,12 +135,25 @@ function SettingsPageInner() {
                 <ChevronRight color="var(--text-secondary)" />
               </div>
             </Link>
-            <div style={{ margin: "0 20px" }}>
+            <div style={{ margin: "0 20px", display: "flex", flexDirection: "column", gap: 10 }}>
               <button className="secondary-btn" onClick={logout}>Вийти з акаунта</button>
+              <button
+                className="text-btn"
+                style={{ color: "var(--error)" }}
+                onClick={() => setShowDeleteAccount(true)}
+              >
+                Видалити акаунт
+              </button>
             </div>
           </>
         )}
       </div>
+      {showDeleteAccount && (
+        <DeleteAccountSheet
+          googleCalendarConnected={me?.google_calendar_connected ?? false}
+          onClose={() => setShowDeleteAccount(false)}
+        />
+      )}
     </>
   );
 }
