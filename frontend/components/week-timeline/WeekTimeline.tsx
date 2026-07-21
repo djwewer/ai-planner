@@ -63,7 +63,6 @@ export function WeekTimeline({
   const scrollAnchorHour = Math.floor(Math.max(START_HOUR, nowHour - 1));
 
   const anchorRef = useRef<HTMLDivElement>(null);
-  const gridRef = useRef<HTMLDivElement>(null);
   const columnsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     anchorRef.current?.scrollIntoView({ block: "start" });
@@ -168,7 +167,6 @@ export function WeekTimeline({
   return (
     <div
       className="week-grid-body"
-      ref={gridRef}
       onPointerMove={handlePointerMove}
       onPointerUp={(e) => endDrag(e, true)}
       onPointerCancel={(e) => endDrag(e, false)}
