@@ -58,3 +58,9 @@ class TaskOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class CaptureResponse(BaseModel):
+    kind: str
+    tasks: list[TaskOut] = []
+    task: Optional[TaskOut] = None

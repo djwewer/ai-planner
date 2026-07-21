@@ -27,7 +27,9 @@ def test_create_capture_creates_draft_tasks(client, monkeypatch):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201
-    tasks = response.json()
+    body = response.json()
+    assert body["kind"] == "created"
+    tasks = body["tasks"]
     assert len(tasks) == 2
     assert all(t["status"] == "draft" for t in tasks)
     assert {t["title"] for t in tasks} == {"Buy milk", "Call John"}
@@ -42,7 +44,7 @@ def test_create_capture_with_no_tasks_found(client, monkeypatch):
         headers={"Authorization": f"Bearer {token}"},
     )
     assert response.status_code == 201
-    assert response.json() == []
+    assert response.json() == {"kind": "created", "tasks": [], "task": None}
 
 
 def test_create_capture_handles_claude_failure(client, monkeypatch):
@@ -114,12 +116,84 @@ def test_telegram_source_capture_notifies(monkeypatch, db_session):
     db_session.commit()
     db_session.refresh(user)
 
-    tasks = captures_service.process_capture(user, "купити молоко", "telegram", db_session)
+    result = captures_service.process_capture(user, "купити молоко", "telegram", db_session)
 
-    assert len(tasks) == 1
-    assert tasks[0].status == "draft"
+    assert result.kind == "created"
+    assert len(result.tasks) == 1
+    assert result.tasks[0].status == "draft"
     mock_notify.assert_called_once()
     capture = db_session.query(captures_service.Capture).filter(
         captures_service.Capture.user_id == user.id
     ).first()
     assert capture.source == "telegram"
+
+
+def test_capture_reschedules_matching_task(client, monkeypatch, db_session):
+    import datetime
+
+    from app.ai.replan import ReplanResult
+    from app.captures import service as captures_service_module
+    from app.models import Task, User
+
+    token = _signup_and_get_token(client, email="reschedule@example.com")
+    user = db_session.query(User).filter(User.email == "reschedule@example.com").first()
+    task = Task(
+        user_id=user.id,
+        title="Стоматолог",
+        status="confirmed",
+        deadline=datetime.date(2026, 7, 22),
+        scheduled_at=datetime.datetime(2026, 7, 22, 10, 0),
+    )
+    db_session.add(task)
+    db_session.commit()
+    db_session.refresh(task)
+
+    monkeypatch.setattr(
+        captures_service_module,
+        "find_reschedule_target",
+        MagicMock(
+            return_value=ReplanResult(
+                kind="reschedule",
+                task_id=task.id,
+                new_deadline=datetime.date(2026, 7, 23),
+                new_scheduled_at=datetime.datetime(2026, 7, 23, 15, 0),
+            )
+        ),
+    )
+
+    response = client.post(
+        "/captures",
+        json={"raw_text": "перенеси стоматолога на завтра о 15:00"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["kind"] == "rescheduled"
+    assert body["task"]["id"] == task.id
+    assert body["task"]["deadline"] == "2026-07-23"
+
+    db_session.refresh(task)
+    assert task.deadline == datetime.date(2026, 7, 23)
+    assert task.scheduled_at == datetime.datetime(2026, 7, 23, 15, 0)
+
+
+def test_capture_no_matching_task_returns_not_found(client, monkeypatch, db_session):
+    from app.ai.replan import ReplanResult
+    from app.captures import service as captures_service_module
+
+    monkeypatch.setattr(
+        captures_service_module,
+        "find_reschedule_target",
+        MagicMock(return_value=ReplanResult(kind="no_match")),
+    )
+
+    token = _signup_and_get_token(client, email="nomatch@example.com")
+    response = client.post(
+        "/captures",
+        json={"raw_text": "перенеси зустріч з інопланетянами на четвер"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+
+    assert response.status_code == 201
+    assert response.json() == {"kind": "not_found", "tasks": [], "task": None}
