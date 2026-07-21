@@ -65,12 +65,29 @@ export function Timeline({
     setDrag(null);
   }
 
+  // Clears a still-pending hold timer if the whole Timeline unmounts mid-hold, so its
+  // callback never fires against a detached element.
+  useEffect(() => resetDragState, []);
+
+  // If the dragged task disappears from the list mid-gesture (e.g. it's toggled done
+  // and refetched away, or the day changes), the card's own onLostPointerCapture never
+  // fires since its DOM node is already gone — reset here instead, so pointerStartRef
+  // doesn't stay armed forever and silently block every future drag.
+  useEffect(() => {
+    if (drag && !positionedItems.some((item) => item.taskId === drag.taskId)) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      resetDragState();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [positionedItems]);
+
   function handlePointerDown(e: React.PointerEvent<HTMLDivElement>, taskId: number, top: number) {
     if (pointerStartRef.current) return;
     const target = e.currentTarget;
     const pointerId = e.pointerId;
     pointerStartRef.current = { pointerId, x: e.clientX, y: e.clientY, top };
     holdTimerRef.current = setTimeout(() => {
+      if (!target.isConnected) return;
       draggingRef.current = true;
       target.setPointerCapture(pointerId);
       const snapped = snapTop(top);
