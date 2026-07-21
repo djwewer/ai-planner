@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -9,7 +9,7 @@ from app.database import get_db
 from app.google_calendar import client as google_calendar_client
 from app.google_calendar.oauth import calendar_oauth
 from app.models import User
-from app.security import get_current_user
+from app.security import decode_access_token, get_current_user
 
 logger = logging.getLogger(__name__)
 
@@ -17,15 +17,20 @@ router = APIRouter(tags=["calendar"])
 
 
 @router.get("/auth/google/calendar/connect")
-async def connect(request: Request, current_user: User = Depends(get_current_user)):
-    request.session["calendar_connect_user_id"] = current_user.id
-    rv = await calendar_oauth.google_calendar.create_authorization_url(
-        settings.google_calendar_redirect_uri, access_type="offline"
+async def connect(request: Request, token: str = Query(...), db: Session = Depends(get_db)):
+    # Identifies the user via a query-param token (not the Authorization header) because
+    # this route must be reached via a top-level browser navigation, not a fetch() — a
+    # cross-origin fetch from the Vercel frontend sets the session cookie in a third-party
+    # context that browsers (Safari ITP, Chrome) silently refuse to persist, which broke
+    # this flow while the same-pattern top-level Google-login redirect kept working fine.
+    user_id = decode_access_token(token)
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=401, detail="Користувача не знайдено")
+    request.session["calendar_connect_user_id"] = user.id
+    return await calendar_oauth.google_calendar.authorize_redirect(
+        request, settings.google_calendar_redirect_uri, access_type="offline"
     )
-    await calendar_oauth.google_calendar.save_authorize_data(
-        request, redirect_uri=settings.google_calendar_redirect_uri, **rv
-    )
-    return {"authorize_url": rv["url"]}
 
 
 @router.get("/auth/google/calendar/callback")

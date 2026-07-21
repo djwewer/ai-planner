@@ -50,16 +50,19 @@ function SettingsPageInner() {
     return () => clearInterval(interval);
   }, [me]);
 
-  async function handleConnectCalendar() {
+  function handleConnectCalendar() {
     setError(null);
-    setConnectingCalendar(true);
-    try {
-      const { authorize_url } = await api.get<{ authorize_url: string }>("/auth/google/calendar/connect");
-      window.location.href = authorize_url;
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Не вдалося підключити Google Calendar");
-      setConnectingCalendar(false);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setError("Не вдалося підключити Google Calendar");
+      return;
     }
+    setConnectingCalendar(true);
+    // A direct top-level navigation (not fetch + redirect) is deliberate here: the
+    // session cookie this flow relies on must be set while the browser is already on
+    // the backend's own domain, or third-party cookie blocking silently drops it.
+    window.location.href =
+      `${process.env.NEXT_PUBLIC_API_URL}/auth/google/calendar/connect?token=${encodeURIComponent(token)}`;
   }
 
   async function handleConnectTelegram() {
